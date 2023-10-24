@@ -18,11 +18,11 @@ public class LoginHandler {
     @SubscribeEvent
     public static void remindLeaderOfSetup(PlayerEvent.PlayerLoggedInEvent event) {
         Player player = event.getPlayer();
-        if (!player.getCommandSenderWorld().isClientSide()) {
+        if (!player.level.isClientSide()) {
             Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
             // join a tribe
-            if (tribe == null){
+            if (tribe == null) {
                 if (TribesConfig.isTribeRequired())
                     NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) player), new PacketOpenJoinGUI((ServerPlayer) player));
                 else {
@@ -35,22 +35,22 @@ public class LoginHandler {
 
             // choose effects
             // todo: config to force choosing your effects
-            if (tribe.effects.isEmpty()){
+            if (tribe.effects.isEmpty()) {
                 player.displayClientMessage(TribeSuccessType.ALERT_EFFECTS.getBlueText(), false);
             }
 
             // choose vice leader
             boolean hasViceLeader = false;
-            for (String id : tribe.getMembers()){
+            for (String id : tribe.getMembers()) {
                 if (tribe.getRankOf(id) == Tribe.Rank.VICE_LEADER) hasViceLeader = true;
             }
-            if (!hasViceLeader){
+            if (!hasViceLeader) {
                 player.displayClientMessage(TribeSuccessType.ALERT_VICE_LEADER.getBlueText(), false);
             }
 
             // choose deity 
             // todo: config to force choosing a deity
-            if (tribe.deity == null){
+            if (tribe.deity == null) {
                 player.displayClientMessage(TribeSuccessType.ALERT_DEITY.getBlueText(), false);
             }
 

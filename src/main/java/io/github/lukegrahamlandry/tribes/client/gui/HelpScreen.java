@@ -6,7 +6,7 @@ import net.minecraft.Util;
 
 public class HelpScreen extends TribeScreen {
     public HelpScreen() {
-        super("", "textures/gui/join_tribe.png", 180, 85, false);
+        super("", "textures/gui/join_tribe.png", 180, 55, false);
     }
 
     @Override
@@ -18,12 +18,14 @@ public class HelpScreen extends TribeScreen {
 
         this.addRenderableWidget(new Button(this.guiLeft + 15, this.guiTop + 15, 150, 20, new TextComponent("Wiki"), (p_214318_1_) -> {
             this.onClose();
-            openLink("https://github.com/LukeGrahamLandry/tribes-mod/blob/main/wiki.md");
+            openLink("https://github.com/Heltrato/tribes-mod-forge-1.18.2#readme");
         }));
-        this.addRenderableWidget(new Button(this.guiLeft + 15, this.guiTop + 15+20+15, 150, 20, new TextComponent("Discord Server"), (p_214318_1_) -> {
+
+        //Removed per advice
+       /* this.addRenderableWidget(new Button(this.guiLeft + 15, this.guiTop + 15+20+15, 150, 20, new TextComponent("Discord Server"), (p_214318_1_) -> {
             this.onClose();
             openLink("https://discord.gg/uG4DewBcwV");
-        }));
+        }));*/
 
         super.init();
     }

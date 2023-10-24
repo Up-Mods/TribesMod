@@ -9,22 +9,29 @@ import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.entity.player.Player;
+import org.apache.logging.log4j.core.tools.picocli.CommandLine;
 
 public class HemiAccessCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("hemisphere")
-                .requires(cs->cs.hasPermission(0)) //permission
+                .requires(cs -> cs.hasPermission(0)) //permission
                 .then(Commands.argument("side", StringArgumentType.word())
                         .executes(HemiAccessCommand::handleSelect)
                 ).executes(ctx -> {
-                        String types = TribesConfig.getUseNorthSouthHemisphereDirection() ? "north / south" : "east / west";
-                        ctx.getSource().sendSuccess(new TextComponent("pick which hemi to access (" + types + ")"), false);
-                        return 0;
-                    }
+                            String types = TribesConfig.getUseNorthSouthHemisphereDirection() ? "North / South" : "East / West";
+                            if (TribesConfig.getUseNorthSouthHemisphereDirection()) {
+                                ctx.getSource().sendSuccess(new TextComponent("Pick which hemisphere (north or south) you want your tribe to be able to place and destroy blocks in. Your choice can never be changed, so choose carefully!").withStyle(style -> style.withColor(TextColor.fromRgb(0x00FFFF))), false);
+                            } else {
+                                ctx.getSource().sendSuccess(new TextComponent("Pick which hemisphere (east or west) you want your tribe to be able to place and destroy blocks in. Your choice can never be changed, so choose carefully!").withStyle(style -> style.withColor(TextColor.fromRgb(0x00FFFF))), false);
+                            }
+                            return 0;
+                        }
                 );
 
     }
@@ -36,7 +43,7 @@ public class HemiAccessCommand {
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
         TribeErrorType response = tribe.validateSelectHemi(player, side);
 
-        if (response == TribeErrorType.SUCCESS){
+        if (response == TribeErrorType.SUCCESS) {
             ConfirmCommand.add(player, () -> {
                 tribe.selectHemi(player, side);
             });

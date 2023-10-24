@@ -2,6 +2,7 @@ package io.github.lukegrahamlandry.tribes.client.gui;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.TextComponent;
@@ -22,7 +23,7 @@ public abstract class GuiButton extends AbstractButton {
     }
 
     public void renderButton(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-        // Minecraft.getInstance().getTextureManager().bind(screen.getGuiTexture());
+      Minecraft.getInstance().getTextureManager().getTexture(screen.getGuiTexture());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, screen.getGuiTexture());
