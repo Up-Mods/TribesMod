@@ -27,11 +27,11 @@ public class DeityCommands {
                 .then(Commands.literal("banner").executes(DeityCommands::createBanner))
                 .then(Commands.literal("choose")
                         .then(Commands.argument("deity", DeityArgumentType.tribe())
-                            .executes(DeityCommands::handleChoose))
+                                .executes(DeityCommands::handleChoose))
                         .executes(ctx -> {
                             ctx.getSource().sendSuccess(TribeErrorType.ARG_DEITY.getText(), false);
-                                return 0;
-                            }))
+                            return 0;
+                        }))
                 .then(Commands.literal("describe")
                         .then(Commands.argument("deity", DeityArgumentType.tribe())
                                 .executes(DeityCommands::handleDescribe))
@@ -46,14 +46,14 @@ public class DeityCommands {
         DeitiesManager.DeityData deity = DeityArgumentType.getDeity(source, "deity");
         ServerPlayer player = source.getSource().getPlayerOrException();
 
-        if (!TribesManager.playerHasTribe(player.getUUID())){
+        if (!TribesManager.playerHasTribe(player.getUUID())) {
             source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
-        } else if (deity != null){
+        } else if (deity != null) {
             Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
-            if (tribe.isLeader(player.getUUID())){
+            if (tribe.isLeader(player.getUUID())) {
                 long timeSinceLastChange = System.currentTimeMillis() - tribe.lastDeityChangeTime;
-                if (timeSinceLastChange < TribesConfig.betweenDeityChangeMillis()){
+                if (timeSinceLastChange < TribesConfig.betweenDeityChangeMillis()) {
                     long hoursToWait = (TribesConfig.betweenDeityChangeMillis() - timeSinceLastChange) / 1000 / 60 / 60;
                     source.getSource().sendSuccess(TribeErrorType.getWaitText(hoursToWait), true);
                 } else {
@@ -74,7 +74,7 @@ public class DeityCommands {
     private static int handleList(CommandContext<CommandSourceStack> source) {
         DeitiesManager.deities.forEach((key, data) -> {
             StringBuilder domains = new StringBuilder();
-            data.domains.forEach((s) -> domains.append(s).append(", "));
+            data.domains.forEach((s) -> domains.append(s).append(""));
             source.getSource().sendSuccess(TribeSuccessType.DESCRIBE_DEITY.getBlueText(data.displayName, data.label, domains), false);
         });
         return Command.SINGLE_SUCCESS;
@@ -82,7 +82,7 @@ public class DeityCommands {
 
     private static int handleDescribe(CommandContext<CommandSourceStack> source) {
         DeitiesManager.DeityData data = DeityArgumentType.getDeity(source, "deity");
-        if (data != null){
+        if (data != null) {
             StringBuilder domains = new StringBuilder();
             data.domains.forEach((s) -> domains.append(s).append(", "));
             source.getSource().sendSuccess(TribeSuccessType.DESCRIBE_DEITY.getBlueText(data.displayName, data.label, domains), false);
@@ -94,16 +94,16 @@ public class DeityCommands {
     private static int createBanner(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
         ServerPlayer player = source.getSource().getPlayerOrException();
 
-        if (!TribesManager.playerHasTribe(player.getUUID())){
+        if (!TribesManager.playerHasTribe(player.getUUID())) {
             source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
         } else {
             String deityName = TribesManager.getTribeOf(player.getUUID()).deity;
-            if (deityName == null){
+            if (deityName == null) {
                 source.getSource().sendSuccess(TribeErrorType.NO_DEITY.getText(), true);
             } else {
                 ItemStack banner = player.getItemInHand(InteractionHand.MAIN_HAND);
 
-                if (banner.getItem() instanceof BannerItem){
+                if (banner.getItem() instanceof BannerItem) {
                     DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
 
                     // dont actually need the BannerPattern here, just hashname
@@ -139,16 +139,16 @@ public class DeityCommands {
     private static int createBook(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
         ServerPlayer player = source.getSource().getPlayerOrException();
 
-        if (!TribesManager.playerHasTribe(player.getUUID())){
+        if (!TribesManager.playerHasTribe(player.getUUID())) {
             source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
         } else {
             String deityName = TribesManager.getTribeOf(player.getUUID()).deity;
-            if (deityName == null){
+            if (deityName == null) {
                 source.getSource().sendSuccess(TribeErrorType.NO_DEITY.getText(), true);
             } else {
                 Item currentlyHeld = player.getItemInHand(InteractionHand.MAIN_HAND).getItem();
 
-                if (currentlyHeld == Items.BOOK || currentlyHeld == Items.WRITABLE_BOOK || currentlyHeld == Items.BOOKSHELF){
+                if (currentlyHeld == Items.BOOK || currentlyHeld == Items.WRITABLE_BOOK || currentlyHeld == Items.BOOKSHELF) {
                     DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
                     ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
 
@@ -159,7 +159,7 @@ public class DeityCommands {
                     tag.putBoolean("resolved", true);
 
                     ListTag pages = new ListTag();
-                    for (String content : data.bookPages){
+                    for (String content : data.bookPages) {
                         Tag page = StringTag.valueOf("{\"text\": \"" + content + "\"}");
                         pages.add(page);
                     }
@@ -170,7 +170,7 @@ public class DeityCommands {
                     player.getItemInHand(InteractionHand.MAIN_HAND).shrink(1);
                     player.drop(book, true);
 
-                    if (currentlyHeld == Items.BOOKSHELF){
+                    if (currentlyHeld == Items.BOOKSHELF) {
                         player.drop(book, true);
                         player.drop(book, true);
                     }
