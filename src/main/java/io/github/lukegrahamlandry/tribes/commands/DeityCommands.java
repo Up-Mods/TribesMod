@@ -29,7 +29,7 @@ public class DeityCommands {
                         .then(Commands.argument("deity", DeityArgumentType.tribe())
                                 .executes(DeityCommands::handleChoose))
                         .executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeErrorType.ARG_DEITY.getText(), false);
+                            ctx.getSource().sendFailure(TribeErrorType.ARG_DEITY.getText());
                             return 0;
                         }))
                 .then(Commands.literal("describe")
@@ -47,7 +47,7 @@ public class DeityCommands {
         ServerPlayer player = source.getSource().getPlayerOrException();
 
         if (!TribesManager.playerHasTribe(player.getUUID())) {
-            source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
+            source.getSource().sendFailure(TribeErrorType.YOU_NOT_IN_TRIBE.getText());
         } else if (deity != null) {
             Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
@@ -83,8 +83,13 @@ public class DeityCommands {
     private static int handleDescribe(CommandContext<CommandSourceStack> source) {
         DeitiesManager.DeityData data = DeityArgumentType.getDeity(source, "deity");
         if (data != null) {
-            StringBuilder domains = new StringBuilder();
-            data.domains.forEach((s) -> domains.append(s).append(", "));
+            //FIXME make translatable
+            String domains;
+            if (data.domains.size() < 2) {
+                domains = data.domains.get(0);
+            } else {
+                domains = String.join(", ", data.domains.subList(0, data.domains.size() - 2)) + " and " + data.domains.get(data.domains.size() - 1);
+            }
             source.getSource().sendSuccess(TribeSuccessType.DESCRIBE_DEITY.getBlueText(data.displayName, data.label, domains), false);
         }
 
