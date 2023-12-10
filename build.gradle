@@ -13,8 +13,8 @@ group = mod_group_id
 def artifactName = "TribesMod"
 
 boolean isPreviewBuild = !ENV.TAG || ENV.TAG.matches(".+-.+")
-def buildNumber = !ENV.TAG ? ("${ENV.BUILD_NUMBER ? "build.${ENV.BUILD_NUMBER}" : buildTime}-${minecraft_version}") : ""
-version = (ENV.TAG ?: "development") + ((isPreviewBuild && !ENV.TAG) ? "+${buildNumber}" : "")
+def buildNumber = isPreviewBuild ? ("${minecraft_version}-${buildTime}${ENV.BUILD_NUMBER ? "+build.${ENV.BUILD_NUMBER}" : ""}") : ENV.BUILD_NUMBER
+version = ENV.TAG ?: buildNumber
 
 base {
     archivesName.set(artifactName)
