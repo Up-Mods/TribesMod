@@ -18,7 +18,6 @@ import net.minecraft.world.entity.player.Player;
 public class AutobanCommands {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("autoban")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.literal("set")
                         .then(Commands.argument("numDeaths", IntegerArgumentType.integer(0, Integer.MAX_VALUE))
                                 .then(Commands.argument("numDays", IntegerArgumentType.integer(0, Integer.MAX_VALUE))

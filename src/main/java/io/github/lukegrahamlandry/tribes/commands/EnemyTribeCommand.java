@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 public class EnemyTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("enemy")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(EnemyTribeCommand::handleJoin)
                 ).executes(ctx -> {

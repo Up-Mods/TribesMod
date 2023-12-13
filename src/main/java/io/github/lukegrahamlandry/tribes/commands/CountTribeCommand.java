@@ -14,7 +14,6 @@ import net.minecraft.commands.Commands;
 public class CountTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("count")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(CountTribeCommand::handleCount)
                 ).executes(ctx -> {

@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 public class WhichTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("who")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(WhichTribeCommand::handleCheck)
                 ).executes(ctx -> {

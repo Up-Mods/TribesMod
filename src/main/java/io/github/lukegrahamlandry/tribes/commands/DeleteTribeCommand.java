@@ -13,7 +13,6 @@ import net.minecraft.world.entity.player.Player;
 public class DeleteTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("delete")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .executes(DeleteTribeCommand::handleDelete);
 
     }

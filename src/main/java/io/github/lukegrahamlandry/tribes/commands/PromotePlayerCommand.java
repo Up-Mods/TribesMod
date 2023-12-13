@@ -17,7 +17,6 @@ import net.minecraft.world.entity.player.Player;
 public class PromotePlayerCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("promote")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(PromotePlayerCommand::handle)
                 ).executes(ctx -> {

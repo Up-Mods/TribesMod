@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 public class AllyTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("ally")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(AllyTribeCommand::handleAlly)
                 ).executes(ctx -> {
@@ -30,7 +29,7 @@ public class AllyTribeCommand {
     public static int handleAlly(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
         Player player = source.getSource().getPlayerOrException();
         Tribe otherTribe = TribeArgumentType.getTribe(source, "tribe");
-        if (otherTribe == null) return 1;
+        if (otherTribe == null) return Command.SINGLE_SUCCESS;
 
         Tribe yourTribe = TribesManager.getTribeOf(player.getUUID());
 

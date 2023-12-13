@@ -18,7 +18,6 @@ import net.minecraftforge.network.PacketDistributor;
 public class EffectsTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("effects")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .executes(EffectsTribeCommand::handleeffects);
 
     }

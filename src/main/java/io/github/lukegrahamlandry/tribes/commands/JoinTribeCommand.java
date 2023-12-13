@@ -22,7 +22,6 @@ import static io.github.lukegrahamlandry.tribes.tribe_data.TribesManager.playerH
 public class JoinTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("join")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(JoinTribeCommand::handleJoin)
                 ).executes(ctx -> {

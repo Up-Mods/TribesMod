@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 public class BanPlayerCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("ban")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(BanPlayerCommand::handleBan)
                 ).executes(ctx -> {

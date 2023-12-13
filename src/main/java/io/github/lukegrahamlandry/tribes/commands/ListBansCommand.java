@@ -18,7 +18,6 @@ import java.util.List;
 public class ListBansCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("bans")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(ListBansCommand::handleListBans)
                 ).executes(ctx -> {

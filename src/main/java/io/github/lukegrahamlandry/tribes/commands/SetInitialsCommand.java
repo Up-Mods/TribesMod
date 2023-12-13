@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 public class SetInitialsCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("initials")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("name", StringArgumentType.word())
                         .executes(SetInitialsCommand::handleCreate)
                 ).executes(ctx -> {

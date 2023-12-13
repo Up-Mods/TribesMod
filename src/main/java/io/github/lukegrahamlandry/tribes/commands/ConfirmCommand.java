@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class ConfirmCommand {
-    private static Map<UUID, IConfirmAction> CONFIRM_ACTIONS = new HashMap<>();
+    private static final Map<UUID, IConfirmAction> CONFIRM_ACTIONS = new HashMap<>();
 
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("confirm").executes(ConfirmCommand::handleConfirm);

@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 public class NeutralTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("neutral")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(NeutralTribeCommand::handleJoin)
                 ).executes(ctx -> {

@@ -20,7 +20,6 @@ import org.apache.logging.log4j.core.tools.picocli.CommandLine;
 public class HemiAccessCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("hemisphere")
-                .requires(cs -> cs.hasPermission(0)) //permission
                 .then(Commands.argument("side", StringArgumentType.word())
                         .executes(HemiAccessCommand::handleSelect)
                 ).executes(ctx -> {

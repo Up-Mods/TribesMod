@@ -15,7 +15,6 @@ import net.minecraft.world.entity.player.Player;
 public class CreateTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("create")
-                .requires(cs->cs.hasPermission(0)) //permission
                 .then(Commands.argument("name", StringArgumentType.greedyString())
                         .executes(CreateTribeCommand::handleCreate)
                 ).executes(ctx -> {
