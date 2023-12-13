@@ -21,7 +21,6 @@ public class CommandInit {
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event){
         event.getDispatcher().register(Commands.literal("tribe")
-                .requires((context) -> context.hasPermission(0))
                 .then(CreateTribeCommand.register())
                 .then(JoinTribeCommand.register())
                 .then(CountTribeCommand.register())

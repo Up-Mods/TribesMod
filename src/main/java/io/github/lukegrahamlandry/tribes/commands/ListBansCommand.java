@@ -1,7 +1,8 @@
 package io.github.lukegrahamlandry.tribes.commands;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.Command;
-import com.mojang.brigadier.builder.ArgumentBuilder;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
@@ -11,36 +12,57 @@ import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.entity.player.Player;
 
-import java.util.List;
+import java.util.stream.Collectors;
 
 public class ListBansCommand {
-    public static ArgumentBuilder<CommandSourceStack, ?> register() {
+    public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return Commands.literal("bans")
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(ListBansCommand::handleListBans)
-                ).executes(ctx -> {
-                    ctx.getSource().sendSuccess(TribeError.ARG_PLAYER.getText(), false);
-                            return 0;
-                        }
-                );
-
+                )
+                .executes(ListBansCommand::handleListBansTribe);
     }
 
-    public static int handleListBans(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
-        Player playerToCheck = EntityArgument.getPlayer(source, "player");
+    private static int handleListBansTribe(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        var player = context.getSource().getPlayerOrException();
+        var tribe = TribesManager.getTribeOf(player.getUUID());
+        var server = context.getSource().getServer();
 
-        List<Tribe> bannedIn = TribesManager.getBans(playerToCheck);
-        String output = "";
-        for (Tribe tribe: bannedIn) {
-            output += tribe.getName() + ", ";
+        if (tribe == null) {
+            context.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
         }
 
-        if (bannedIn.size() == 0){
-            source.getSource().sendSuccess(TribeSuccessType.NO_BANS.getBlueText(playerToCheck), true);
+        if(!tribe.getRankOf(player.getUUID()).isOfficerOrHigher()) {
+            context.getSource().sendFailure(TribeError.RANK_TOO_LOW.getText());
+            return 0;
+        }
+
+        //TODO translation, formatting, etc
+        var banned = tribe.getBans();
+        if (banned.isEmpty()) {
+            context.getSource().sendSuccess(new TextComponent("No active bans."), false);
+            return Command.SINGLE_SUCCESS;
         } else {
-            source.getSource().sendSuccess(TribeSuccessType.LIST_BANS.getBlueText(playerToCheck, output), true);
+            var joined = banned.stream().map(id -> server.getProfileCache().get(id).map(GameProfile::getName).orElseGet(id::toString)).sorted().collect(Collectors.joining(", "));
+            context.getSource().sendSuccess(new TextComponent(joined), false);
+            return banned.size();
+        }
+    }
+
+    ;
+
+    public static int handleListBans(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Player playerToCheck = EntityArgument.getPlayer(context, "player");
+
+        var bannedIn = TribesManager.getBans(playerToCheck);
+        if (bannedIn.isEmpty()) {
+            context.getSource().sendSuccess(TribeSuccessType.NO_BANS.getBlueText(playerToCheck), true);
+        } else {
+            context.getSource().sendSuccess(TribeSuccessType.LIST_BANS.getBlueText(playerToCheck, bannedIn.stream().map(Tribe::getName).collect(Collectors.joining(", "))), true);
         }
 
         return Command.SINGLE_SUCCESS;
