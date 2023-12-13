@@ -7,11 +7,12 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.tribe_data.DeitiesManager;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 // big problem:
@@ -27,7 +28,7 @@ public class DeityArgumentType implements ArgumentType<DeitiesManager.DeityData>
         String argument = reader.getRemaining();
         reader.setCursor(reader.getTotalLength());
 
-        for (String key : DeitiesManager.deities.keySet()){
+        for (String key : DeitiesManager.deities.keySet()) {
             String display = DeitiesManager.deities.get(key).displayName;
             if (argument.equals(key) || argument.equals(display)) return DeitiesManager.deities.get(key);
         }
@@ -37,10 +38,10 @@ public class DeityArgumentType implements ArgumentType<DeitiesManager.DeityData>
 
     public static <S> DeitiesManager.DeityData getDeity(CommandContext<S> context, String name) {
         try {
-            return context.getArgument(name, DeitiesManager.DeityData.class);
-        } catch (Exception e){
-            if (context.getSource() instanceof CommandSourceStack){
-                ((CommandSourceStack)context.getSource()).sendSuccess(TribeErrorType.INVALID_DEITY.getText(), true);
+            return Objects.requireNonNull(context.getArgument(name, DeitiesManager.DeityData.class));
+        } catch (Exception e) {
+            if (context.getSource() instanceof CommandSourceStack) {
+                ((CommandSourceStack) context.getSource()).sendSuccess(TribeError.INVALID_DEITY.getText(), true);
             }
             return null;
         }
@@ -56,7 +57,7 @@ public class DeityArgumentType implements ArgumentType<DeitiesManager.DeityData>
 
         TribesMain.LOGGER.debug(s);
 
-        for (String key : DeitiesManager.deities.keySet()){
+        for (String key : DeitiesManager.deities.keySet()) {
             String display = DeitiesManager.deities.get(key).displayName;
             if (key.startsWith(s) || display.startsWith(s)) builder.suggest(display);
         }

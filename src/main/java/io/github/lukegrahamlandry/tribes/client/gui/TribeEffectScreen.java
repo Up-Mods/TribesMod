@@ -3,6 +3,7 @@ package io.github.lukegrahamlandry.tribes.client.gui;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.lukegrahamlandry.tribes.TribesMain;
+import io.github.lukegrahamlandry.tribes.api.tribe.EffectsInfo;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
 import io.github.lukegrahamlandry.tribes.network.SaveEffectsPacket;
@@ -44,7 +45,7 @@ public class TribeEffectScreen extends TribeScreen {
     private Button nextButton;
     final int EFFECTS_PER_PAGE = 14;
 
-    public TribeEffectScreen(int numGoodAllowed, int numBadAllowed, HashMap<MobEffect, Integer> currentEffects) {
+    public TribeEffectScreen(int numGoodAllowed, int numBadAllowed, EffectsInfo effectsInfo) {
         super(".tribeEffectScreen", "textures/gui/tribe_effects_left.png", "textures/gui/tribe_effects_right.png", 175, 219, false);
 
         // all this stuff is sent from the server by PacketOpenEffectGUI
@@ -54,9 +55,9 @@ public class TribeEffectScreen extends TribeScreen {
 
         selGoodEffects = new HashMap<>();
         selBadEffects = new HashMap<>();
-        currentEffects.forEach((effect, level) -> {
-            if (posEffects.contains(effect)) selGoodEffects.put(effect, level);
-            if (negEffects.contains(effect)) selBadEffects.put(effect, level);
+        effectsInfo.getEffects().forEach((effect) -> {
+            if (posEffects.contains(effect.effect())) selGoodEffects.put(effect.effect(), effect.level());
+            if (negEffects.contains(effect.effect())) selBadEffects.put(effect.effect(), effect.level());
         });
         calcNumSelected();
     }

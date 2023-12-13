@@ -1,6 +1,5 @@
 package io.github.lukegrahamlandry.tribes.network;
 
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.network.FriendlyByteBuf;
@@ -25,14 +24,17 @@ public class PacketJoinTribe {
         this.tribeName = tribeNameIn;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx){
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+        var player = ctx.get().getSender();
         ctx.get().enqueueWork(() -> {
-            TribeErrorType result = TribesManager.joinTribe(tribeName, ctx.get().getSender());
-            if (result == TribeErrorType.SUCCESS){
-                ctx.get().getSender().sendMessage(TribeSuccessType.YOU_JOINED.getText(tribeName), ctx.get().getSender().getUUID());
-            } else {
-                ctx.get().getSender().sendMessage(result.getText(), ctx.get().getSender().getUUID());
+            var tribe = TribesManager.findTribe(tribeName);
+            var result = TribesManager.joinTribe(tribe, player);
+            if (!result.success()) {
+                player.displayClientMessage(result.error().getText(), false);
+                return;
             }
+
+            ctx.get().getSender().displayClientMessage(TribeSuccessType.YOU_JOINED.getText(tribeName), false);
         });
         ctx.get().setPacketHandled(true);
     }

@@ -4,23 +4,26 @@ import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Style;
 
-public enum TribeErrorType {
+public enum TribeError {
     SUCCESS,
     NAME_TAKEN,
+    IN_OTHER_TRIBE,
     IN_TRIBE,
-    LONG_NAME,
+    NAME_TOO_LONG,
     CLIENT,
     INVALID_TRIBE,
-    LOW_RANK,
+    RANK_TOO_LOW,
     YOU_NOT_IN_TRIBE,
     BANNED,
     RANK_DOESNT_EXIST,
+    CANNOT_PROMOTE_RANK,
     THEY_NOT_IN_TRIBE,
     SAME_TRIBE,
     CONFIG,
     ALREADY_CLAIMED,
-    HAVE_HEMI,
-    INVALID_HEMI,
+    NOT_OWNED,
+    ALREADY_HAVE_HEMISPHERE,
+    INVALID_HEMISPHERE,
     WEAK_TRIBE,
     NO_CONFIRM,
     INVALID_DEITY,
@@ -34,7 +37,8 @@ public enum TribeErrorType {
     ARG_MISSING,
     INVALID_RANK,
     NOT_PRIVATE,
-    IS_PRIVATE;
+    IS_PRIVATE,
+    EVENT_CANCELLED, CANNOT_DEMOTE_RANK, MAX_CLAIMS_REACHED;
 
     public TranslatableComponent getText(){
         String langEntry = "error.tribes." + this.name().toLowerCase();

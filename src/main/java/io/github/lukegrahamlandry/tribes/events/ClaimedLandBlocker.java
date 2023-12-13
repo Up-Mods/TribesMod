@@ -1,12 +1,13 @@
 package io.github.lukegrahamlandry.tribes.events;
 
 
+import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.tribe_data.LandClaimHelper;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(modid = TribesMain.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClaimedLandBlocker {
     @SubscribeEvent
     public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event){

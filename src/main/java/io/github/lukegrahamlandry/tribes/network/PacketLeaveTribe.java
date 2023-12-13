@@ -2,7 +2,7 @@ package io.github.lukegrahamlandry.tribes.network;
 
 import io.github.lukegrahamlandry.tribes.commands.ConfirmCommand;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.network.FriendlyByteBuf;
@@ -33,7 +33,7 @@ public class PacketLeaveTribe {
                     ctx.get().getSender().sendMessage(TribeSuccessType.YOU_LEFT.getText(), ctx.get().getSender().getUUID());
                 });
             } else {
-                ctx.get().getSender().sendMessage(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), ctx.get().getSender().getUUID());
+                ctx.get().getSender().sendMessage(TribeError.YOU_NOT_IN_TRIBE.getText(), ctx.get().getSender().getUUID());
             }
         });
         ctx.get().setPacketHandled(true);

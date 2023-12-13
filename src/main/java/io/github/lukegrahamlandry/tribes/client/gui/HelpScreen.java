@@ -18,7 +18,7 @@ public class HelpScreen extends TribeScreen {
 
         this.addRenderableWidget(new Button(this.guiLeft + 15, this.guiTop + 15, 150, 20, new TextComponent("Wiki"), (p_214318_1_) -> {
             this.onClose();
-            openLink("https://github.com/Heltrato/tribes-mod-forge-1.18.2#readme");
+            openLink("https://github.com/Up-Mods/tribes-mod/blob/HEAD/README.md");
         }));
 
         //Removed per advice

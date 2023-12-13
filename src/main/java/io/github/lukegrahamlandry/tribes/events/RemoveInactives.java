@@ -5,6 +5,7 @@ import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
+import net.minecraft.server.MinecraftServer;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -34,13 +35,17 @@ public class RemoveInactives {
         lastPlayTimes.put(player, Instant.now());
     }
 
-    public static void check() {
+    public static void check(MinecraftServer server) {
         if (TribesConfig.removeInactiveAfterDays.get() == 0) return;
 
+        var now = Instant.now();
+        server.getPlayerList().getPlayers().forEach(player -> lastPlayTimes.put(player.getUUID(), now));
+
+        var threshold = now.minus(TribesConfig.removeInactiveAfterDays.get(), ChronoUnit.DAYS);
         lastPlayTimes.forEach((uuid, loginTime) -> {
             Tribe tribe = TribesManager.getTribeOf(uuid);
             if (tribe != null) {
-                if (loginTime.isBefore(Instant.now().minus(TribesConfig.removeInactiveAfterDays.get(), ChronoUnit.DAYS))) {
+                if (loginTime.isBefore(threshold)) {
                     TribesMain.LOGGER.debug("remove inactive member {} from tribe {} (last seen: {})", uuid, tribe.getName(), loginTime);
                     // todo: message to everyone that the player has been kicked
                     // todo: message to the player when they join again

@@ -3,16 +3,18 @@ package io.github.lukegrahamlandry.tribes.commands.util;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
-import net.minecraft.commands.CommandSourceStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 // big problem:
@@ -20,6 +22,9 @@ import java.util.concurrent.CompletableFuture;
 // further thinking required on how to fix this
 
 public class TribeArgumentType implements ArgumentType<Tribe> {
+
+    private static final SimpleCommandExceptionType INVALID_TRIBE = new SimpleCommandExceptionType(TribeError.INVALID_TRIBE.getText());
+
     public static TribeArgumentType tribe() {
         return new TribeArgumentType();
     }
@@ -27,17 +32,14 @@ public class TribeArgumentType implements ArgumentType<Tribe> {
     public Tribe parse(StringReader reader) {
         String tribeName = reader.getRemaining();
         reader.setCursor(reader.getTotalLength());
-        return TribesManager.getTribe(tribeName);
+        return TribesManager.findTribe(tribeName);
     }
 
-    public static <S> Tribe getTribe(CommandContext<S> context, String name) {
+    public static <S> Tribe getTribe(CommandContext<S> context, String name) throws CommandSyntaxException {
         try {
-            return context.getArgument(name, Tribe.class);
-        } catch (Exception e){
-            if (context.getSource() instanceof CommandSourceStack){
-                ((CommandSourceStack)context.getSource()).sendSuccess(TribeErrorType.INVALID_TRIBE.getText(), true);
-            }
-            return null;
+            return Objects.requireNonNull(context.getArgument(name, Tribe.class));
+        } catch (Exception e) {
+            throw INVALID_TRIBE.create();
         }
     }
 
@@ -51,7 +53,7 @@ public class TribeArgumentType implements ArgumentType<Tribe> {
 
         TribesMain.LOGGER.debug(s);
 
-        for (Tribe tribe : TribesManager.getTribes()){
+        for (Tribe tribe : TribesManager.getTribes()) {
             if (tribe.getName().startsWith(s)) builder.suggest(tribe.getName());
         }
 

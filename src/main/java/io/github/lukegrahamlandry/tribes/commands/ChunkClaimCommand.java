@@ -9,13 +9,14 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 
 public class ChunkClaimCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("chunk")
                 .then(claim())
                 .then(unclaim());
-                // .then(who());  // done in ShowLandOwnerUI
+        // .then(who());  // done in ShowLandOwnerUI
     }
 
     private static ArgumentBuilder<CommandSourceStack, ?> claim() {
@@ -37,18 +38,19 @@ public class ChunkClaimCommand {
         Player player = source.getSource().getPlayerOrException();
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
-        if (tribe == null){
-            source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
+        if (tribe == null) {
+            source.getSource().sendSuccess(TribeError.YOU_NOT_IN_TRIBE.getText(), true);
             return Command.SINGLE_SUCCESS;
         }
 
-        TribeErrorType response = tribe.claimChunk(getChunk(player), player.getUUID());
-        if (response == TribeErrorType.SUCCESS){
-            int x = (int) getChunk(player);
-            int z = (int) (getChunk(player) >> 32);
-            tribe.broadcastMessage(TribeSuccessType.CLAIM_CHUNK, player, x, z);
+        var result = tribe.claimChunk(getChunk(player), player.getUUID());
+        if (!result.success()) {
+            source.getSource().sendFailure(result.error().getText());
+            return 0;
         } else {
-            source.getSource().sendSuccess(response.getText(), true);
+            int x = result.value().x;
+            int z = result.value().z;
+            TribeHelper.broadcastMessage(tribe, TribeSuccessType.CLAIM_CHUNK, player, player.getServer(), x, z);
         }
 
         return Command.SINGLE_SUCCESS;
@@ -58,20 +60,19 @@ public class ChunkClaimCommand {
         Player player = source.getSource().getPlayerOrException();
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
-        if (tribe == null){
-            source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
-            return Command.SINGLE_SUCCESS;
+        if (tribe == null) {
+            source.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
         }
 
-        TribeErrorType response = tribe.unclaimChunk(getChunk(player), player.getUUID());
-        if (response == TribeErrorType.SUCCESS){
-            int x = (int) getChunk(player);
-            int z = (int) (getChunk(player) >> 32);
-
-            tribe.broadcastMessage(TribeSuccessType.UNCLAIM_CHUNK, player, x, z);
-        } else {
-            source.getSource().sendSuccess(response.getText(), true);
+        var result = tribe.unclaimChunk(getChunk(player), player.getUUID());
+        if (!result.success()) {
+            source.getSource().sendFailure(result.error().getText());
+            return 0;
         }
+        int x = result.value().x;
+        int z = result.value().z;
+        TribeHelper.broadcastMessage(tribe, TribeSuccessType.UNCLAIM_CHUNK, player, player.getServer(), x, z);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -80,10 +81,10 @@ public class ChunkClaimCommand {
         Player player = source.getSource().getPlayerOrException();
 
         Tribe owner = LandClaimHelper.getChunkOwner(getChunk(player));
-        int x = (int) getChunk(player);
-        int z = (int) (getChunk(player) >> 32);
+        int x = getChunk(player).x;
+        int z = getChunk(player).z;
 
-        if (owner == null){
+        if (owner == null) {
             source.getSource().sendSuccess(new TextComponent("chunk (" + x + ", " + z + ") is unclaimed"), true);
         } else {
             source.getSource().sendSuccess(new TextComponent("chunk (" + x + ", " + z + ") is claimed by " + owner.getName() + " (" + owner.getInitials() + ")"), true);
@@ -92,7 +93,7 @@ public class ChunkClaimCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static long getChunk(Player player){
-        return player.getCommandSenderWorld().getChunkAt(player.blockPosition()).getPos().toLong();
+    private static ChunkPos getChunk(Player player) {
+        return player.getCommandSenderWorld().getChunkAt(player.blockPosition()).getPos();
     }
 }

@@ -4,7 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -32,7 +32,7 @@ public class ConfirmCommand {
 
         IConfirmAction action = CONFIRM_ACTIONS.get(player.getUUID());
         if (action == null){
-            source.getSource().sendSuccess(TribeErrorType.NO_CONFIRM.getText(), true);
+            source.getSource().sendSuccess(TribeError.NO_CONFIRM.getText(), true);
         } else {
             action.call();
         }

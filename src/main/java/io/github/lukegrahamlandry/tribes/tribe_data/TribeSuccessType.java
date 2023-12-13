@@ -1,6 +1,5 @@
 package io.github.lukegrahamlandry.tribes.tribe_data;
 
-import io.github.lukegrahamlandry.tribes.events.TribeServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
@@ -38,7 +37,7 @@ public enum TribeSuccessType {
     AUTOBAN_NUMBERS,
     YES_AUTOBAN_RANK,
     NO_AUTOBAN_RANK,
-    CHOOSE_HEMI,
+    CHOOSE_HEMISPHERE,
     BAN_FOR_DEATHS,
     LIST_BANS,
     NO_BANS,
@@ -87,7 +86,8 @@ public enum TribeSuccessType {
             }
         }
 
-        Player player = TribeServer.getPlayerByUuid(causingPlayer);
+        //FIXME need server
+        Player player = null; //TribeServer.getPlayerByUuid(causingPlayer);
         if (player == null) return getText(args);
 
         String langEntry = "success.tribes." + this.name().toLowerCase();

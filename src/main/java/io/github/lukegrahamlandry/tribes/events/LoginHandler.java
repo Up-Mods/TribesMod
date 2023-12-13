@@ -1,5 +1,7 @@
 package io.github.lukegrahamlandry.tribes.events;
 
+import io.github.lukegrahamlandry.tribes.TribesMain;
+import io.github.lukegrahamlandry.tribes.api.tribe.Member;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
 import io.github.lukegrahamlandry.tribes.network.PacketOpenJoinGUI;
@@ -13,7 +15,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(modid = TribesMain.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class LoginHandler {
     @SubscribeEvent
     public static void remindLeaderOfSetup(PlayerEvent.PlayerLoggedInEvent event) {
@@ -31,26 +33,23 @@ public class LoginHandler {
                 return;
             }
 
-            if (!tribe.isLeader(player.getUUID())) return;
+            if (tribe.getRankOf(player.getUUID()) != Member.Rank.LEADER) return;
 
             // choose effects
             // todo: config to force choosing your effects
-            if (tribe.effects.isEmpty()) {
+            if (tribe.getEffects().getEffects().isEmpty()) {
                 player.displayClientMessage(TribeSuccessType.ALERT_EFFECTS.getBlueText(), false);
             }
 
             // choose vice leader
-            boolean hasViceLeader = false;
-            for (String id : tribe.getMembers()) {
-                if (tribe.getRankOf(id) == Tribe.Rank.VICE_LEADER) hasViceLeader = true;
-            }
+            boolean hasViceLeader = tribe.getMembers().values().stream().anyMatch(m -> m.rank().isViceLeaderOrHigher());
             if (!hasViceLeader) {
                 player.displayClientMessage(TribeSuccessType.ALERT_VICE_LEADER.getBlueText(), false);
             }
 
-            // choose deity 
+            // choose deity
             // todo: config to force choosing a deity
-            if (tribe.deity == null) {
+            if (tribe.getDeityInfo().isEmpty()) {
                 player.displayClientMessage(TribeSuccessType.ALERT_DEITY.getBlueText(), false);
             }
 

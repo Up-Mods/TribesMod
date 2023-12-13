@@ -8,13 +8,13 @@ import io.github.lukegrahamlandry.tribes.commands.util.TribeArgumentType;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
 import io.github.lukegrahamlandry.tribes.network.PacketOpenJoinGUI;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.PacketDistributor;
 
 import static io.github.lukegrahamlandry.tribes.tribe_data.TribesManager.playerHasTribe;
@@ -31,20 +31,22 @@ public class JoinTribeCommand {
                 });
     }
 
-    public static int handleJoin(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
-        Player player = source.getSource().getPlayerOrException();
-        Tribe tribe = TribeArgumentType.getTribe(source, "tribe");
+    public static int handleJoin(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Player player = context.getSource().getPlayerOrException();
+        Tribe tribe = TribeArgumentType.getTribe(context, "tribe");
         if (tribe == null) return 1;
 
-        TribeErrorType response;
-        if (playerHasTribe(player.getUUID())) response = TribeErrorType.IN_TRIBE;
-        else response = TribesManager.joinTribe(tribe.getName(), player);
-
-        if (response == TribeErrorType.SUCCESS){
-            source.getSource().sendSuccess(TribeSuccessType.YOU_JOINED.getText(tribe), true);
-        } else {
-            source.getSource().sendSuccess(response.getText(), true);
+        if (playerHasTribe(player.getUUID())) {
+            context.getSource().sendFailure(TribeError.IN_TRIBE.getText());
+            return 0;
         }
+
+        var result = TribesManager.joinTribe(tribe, player);
+        if (!result.success()) {
+            context.getSource().sendFailure(result.error().getText());
+        }
+
+        context.getSource().sendSuccess(TribeSuccessType.YOU_JOINED.getText(tribe), true);
 
         return Command.SINGLE_SUCCESS;
     }

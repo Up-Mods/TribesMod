@@ -1,573 +1,418 @@
 package io.github.lukegrahamlandry.tribes.tribe_data;
 
-import com.google.gson.*;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.github.lukegrahamlandry.tribes.api.TribesAPI;
+import io.github.lukegrahamlandry.tribes.api.claims.Hemisphere;
+import io.github.lukegrahamlandry.tribes.api.claims.HemisphereDirection;
+import io.github.lukegrahamlandry.tribes.api.events.*;
+import io.github.lukegrahamlandry.tribes.api.tribe.*;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
-import io.github.lukegrahamlandry.tribes.events.TribeServer;
-import net.minecraft.world.effect.MobEffect;
+import io.github.lukegrahamlandry.tribes.util.CodecHelper;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraftforge.common.MinecraftForge;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 public class Tribe {
-    public LandClaimHelper.Hemi hemiAccess;
-    String name;
-    String initials;
-    public String deity;
-    HashMap<String, Rank> members;  // key is player uuid
-    List<String> bans;
-    public HashMap<String, Relation> relationToOtherTribes;  // key is tribe name
-    List<Long> chunks;
+    private final UUID id;
+    private String name;
+    private String initials;
+    private UUID leaderId;
+    private boolean isPrivate;
+    private Hemisphere hemisphereAccess;
+    @Nullable
+    private DeityInfo deityInfo;
+    private final EffectsInfo effects;
+    private final HashMap<UUID, Member> members;
+    private final Map<UUID, Relation> relations;
+    private final List<UUID> bans;
+    private final AutoBanInfo autobans;
+    //TODO move elsewhere
+    private final List<UUID> pendingInvites;
 
+    //FIXME move to LandClaimHelper
+    List<ChunkPos> claims;
+
+    //FIXME not serialized
+    //FIXME move elsewhere
     public int claimDisableTime = 0;
     public int deathIndex = 0;
     public boolean deathWasPVP = false;
 
-    public long lastDeityChangeTime = 0;
-    public long lastEffectsChangeTime = 0;
-
-    public int autobanDeathThreshold = 3;
-    public int autobanDaysThreshold = 2;
-    public Map<Rank, Boolean> autobanRank = new HashMap<>();
-
-    public boolean isPrivate = false;
-    public List<String> pendingInvites = new ArrayList<>();
-
-    public HashMap<MobEffect, Integer> effects;
-
-    public Tribe(String tribeName, UUID creater) {
-        this.name = tribeName;
-        this.initials = Character.toString(tribeName.charAt(0));
-        this.bans = new ArrayList<>();
-        this.members = new HashMap<>();
-        this.relationToOtherTribes = new HashMap<>();
-        this.chunks = new ArrayList<>();
-        this.effects = new HashMap<>();
-        this.addMember(creater, Rank.LEADER);
-        this.hemiAccess = LandClaimHelper.Hemi.NONE;
-
-        autobanRank.put(Rank.MEMBER, true);
-        autobanRank.put(Rank.OFFICER, true);
-        autobanRank.put(Rank.VICE_LEADER, false);
-        autobanRank.put(Rank.LEADER, false);
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public Tribe(UUID id, String name, String initials, UUID leaderId, boolean isPrivate, Hemisphere hemisphere, Optional<DeityInfo> deityInfo, EffectsInfo effects, Map<UUID, Member> members, Map<UUID, Relation> relations, List<UUID> bans, AutoBanInfo autoBanInfo, List<UUID> pendingInvites, List<ChunkPos> claims) {
+        this.id = id;
+        this.name = name;
+        this.initials = initials;
+        this.leaderId = leaderId;
+        this.isPrivate = isPrivate;
+        this.hemisphereAccess = hemisphere;
+        this.deityInfo = deityInfo.orElse(null);
+        this.effects = effects;
+        this.members = new HashMap<>(members);
+        this.relations = new HashMap<>(relations);
+        this.bans = new ArrayList<>(bans);
+        this.autobans = autoBanInfo;
+        this.pendingInvites = new ArrayList<>(pendingInvites);
+        this.claims = new ArrayList<>(claims);
     }
 
-    public TribeErrorType addMember(UUID playerID, Rank rank) {
-        if (isBanned(playerID)) return TribeErrorType.BANNED;
-        if (TribesManager.playerHasTribe(playerID) || this.getMembers().contains(playerID.toString()))
-            return TribeErrorType.IN_TRIBE;
-
-        this.members.put(playerID.toString(), rank);
-        return TribeErrorType.SUCCESS;
+    public static Tribe of(String name, UUID leader, boolean isPrivate) {
+        var tribe = new Tribe(UUID.randomUUID(), name, Character.toString(name.charAt(0)), leader, isPrivate, Hemisphere.NONE, Optional.empty(), new EffectsInfo(Optional.empty(), new ArrayList<>()), new HashMap<>(), new HashMap<>(), new ArrayList<>(), new AutoBanInfo(3, 2, new ArrayList<>()), new ArrayList<>(), new ArrayList<>());
+        tribe.addMember(leader, Member.Rank.LEADER);
+        tribe.autobans.getRanks().add(Member.Rank.MEMBER);
+        tribe.autobans.getRanks().add(Member.Rank.OFFICER);
+        return tribe;
     }
 
-    public TribeErrorType banPlayer(UUID playerRunningCommand, UUID playerToBan) {
-        if (this.getRankOf(playerRunningCommand.toString()).asInt() <= this.getRankOf(playerToBan.toString()).asInt())
-            return TribeErrorType.LOW_RANK;
+    public TribeResult<Member> addMember(UUID playerID, Member.Rank rank) {
+        if (isBanned(playerID)) return TribeResult.error(TribeError.BANNED);
+        if (TribesManager.playerHasTribe(playerID))
+            return TribeResult.error(TribeError.IN_TRIBE);
 
-        if (this.getMembers().contains(playerToBan.toString())) {
+        var info = new Member(playerID, rank);
+        this.members.put(playerID, info);
+        MinecraftForge.EVENT_BUS.post(new TribeMemberAddedEvent(this, playerID));
+        return TribeResult.success(info);
+    }
+
+    public TribeResult<Void> banPlayer(UUID playerRunningCommand, UUID playerToBan) {
+        if (this.getRankOf(playerRunningCommand).compareTo(this.getRankOf(playerToBan)) <= 0)
+            return TribeResult.error(TribeError.RANK_TOO_LOW);
+
+        var event = new TribeMemberBanEvent(this, playerRunningCommand, playerToBan);
+        if (MinecraftForge.EVENT_BUS.post(event)) return TribeResult.error(TribeError.EVENT_CANCELLED);
+
+        if (isMember(playerToBan)) {
             this.removeMember(playerToBan);
         }
 
-        this.bans.add(playerToBan.toString());
+        this.bans.add(playerToBan);
 
-        return TribeErrorType.SUCCESS;
+        return TribeResult.empty_success();
     }
 
-    public TribeErrorType unbanPlayer(UUID playerRunningCommand, UUID playerToUnban) {
-        if (!this.isOfficer(playerRunningCommand)) return TribeErrorType.LOW_RANK;
+    public TribeResult<Void> unbanPlayer(UUID playerRunningCommand, UUID playerToUnban) {
+        if (!this.isOfficerOrHigher(playerRunningCommand)) return TribeResult.error(TribeError.RANK_TOO_LOW);
 
-        this.bans.remove(playerToUnban.toString());
+        var event = new TribeMemberUnbanEvent(this, playerRunningCommand, playerToUnban);
+        if (MinecraftForge.EVENT_BUS.post(event)) return TribeResult.error(TribeError.EVENT_CANCELLED);
 
-        return TribeErrorType.SUCCESS;
+        this.bans.remove(playerToUnban);
+
+        return TribeResult.empty_success();
     }
 
-    public TribeErrorType promotePlayer(UUID playerRunningCommand, UUID playerToPromote) {
-        if (!this.getMembers().contains(playerToPromote.toString())) return TribeErrorType.THEY_NOT_IN_TRIBE;
+    public TribeResult<Member.Rank> promotePlayer(UUID playerRunningCommand, UUID playerToPromote) {
+        if (!isMember(playerToPromote)) return TribeResult.error(TribeError.THEY_NOT_IN_TRIBE);
 
-        int runRank = this.getRankOf(playerRunningCommand.toString()).asInt();
-        int targetRank = this.getRankOf(playerToPromote.toString()).asInt();
+        var runRank = this.getRankOf(playerRunningCommand);
+        var targetRank = this.getRankOf(playerToPromote);
 
-        if ((runRank - 1) < targetRank) return TribeErrorType.LOW_RANK;
+        var newRank = targetRank.promotesTo();
+        if (newRank == null) return TribeResult.error(TribeError.CANNOT_PROMOTE_RANK);
+        if (runRank != Member.Rank.LEADER && runRank.compareTo(newRank) <= 0)
+            return TribeResult.error(TribeError.RANK_TOO_LOW);
 
-        int newRank = targetRank + 1;
-        if (newRank > Rank.LEADER.asInt()) return TribeErrorType.RANK_DOESNT_EXIST;
-        if (newRank == Rank.LEADER.asInt()) {
-            this.setRank(playerRunningCommand, Rank.VICE_LEADER);
+        var event = new TribeMemberPromotionEvent(this, playerRunningCommand, playerToPromote, TribeMemberPromotionEvent.Type.PROMOTION);
+        if (MinecraftForge.EVENT_BUS.post(event)) return TribeResult.error(TribeError.EVENT_CANCELLED);
+
+        this.setRank(playerToPromote, event.getNewRank(), playerRunningCommand);
+
+        if (event.getNewRank() == Member.Rank.LEADER) {
+            this.setRank(playerRunningCommand, Member.Rank.VICE_LEADER, playerRunningCommand);
         }
 
-        this.setRank(playerToPromote, Rank.fromInt(newRank));
-
-        return TribeErrorType.SUCCESS;
+        return TribeResult.success(event.getNewRank());
     }
 
-    public TribeErrorType demotePlayer(UUID playerRunningCommand, UUID playerToPromote) {
-        if (!this.getMembers().contains(playerToPromote.toString())) return TribeErrorType.THEY_NOT_IN_TRIBE;
+    public TribeResult<Member.Rank> demotePlayer(UUID playerRunningCommand, UUID playerToDemote) {
+        if (!isMember(playerToDemote)) return TribeResult.error(TribeError.THEY_NOT_IN_TRIBE);
 
-        int runRank = this.getRankOf(playerRunningCommand.toString()).asInt();
-        int targetRank = this.getRankOf(playerToPromote.toString()).asInt();
+        var runRank = this.getRankOf(playerRunningCommand);
+        var targetRank = this.getRankOf(playerToDemote);
 
-        if (runRank <= targetRank) return TribeErrorType.LOW_RANK;
+        if (runRank.compareTo(targetRank) <= 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
 
-        int newRank = targetRank - 1;
-        if (newRank < 0) return TribeErrorType.RANK_DOESNT_EXIST;
-        this.setRank(playerToPromote, Rank.fromInt(newRank));
+        var newRank = targetRank.demotesTo();
+        if (newRank == null) return TribeResult.error(TribeError.CANNOT_DEMOTE_RANK);
 
-        return TribeErrorType.SUCCESS;
+        var event = new TribeMemberPromotionEvent(this, playerRunningCommand, playerToDemote, TribeMemberPromotionEvent.Type.DEMOTION);
+        if (MinecraftForge.EVENT_BUS.post(event)) return TribeResult.error(TribeError.EVENT_CANCELLED);
+
+        this.setRank(playerToDemote, event.getNewRank(), playerRunningCommand);
+
+        return TribeResult.success(event.getNewRank());
     }
 
-    public TribeErrorType setRelation(UUID player, Tribe otherTribe, Relation relation) {
-        if (!this.isViceLeader(player)) return TribeErrorType.LOW_RANK;
-        if (this.getName().equals(otherTribe.getName())) return TribeErrorType.SAME_TRIBE;
+    public TribeResult<Relation.Type> setRelation(UUID player, Tribe otherTribe, Relation.Type type) {
+        if (!this.isViceLeaderOrHigher(player)) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (this.getId().equals(otherTribe.getId())) return TribeResult.error(TribeError.SAME_TRIBE);
 
-        if (relation == Relation.NONE && this.relationToOtherTribes.containsKey(otherTribe.name)) {
-            this.relationToOtherTribes.remove(otherTribe.name);
+        //TODO event
+
+        if (type == Relation.Type.NEUTRAL) {
+            this.relations.remove(otherTribe.getId());
         } else {
-            this.relationToOtherTribes.put(otherTribe.name, relation);
+            this.relations.put(otherTribe.getId(), new Relation(otherTribe.getId(), type));
         }
 
-        return TribeErrorType.SUCCESS;
+        return TribeResult.success(type);
     }
 
-    public TribeErrorType trySetInitials(String str, UUID player) {
-        if (!this.isViceLeader(player)) return TribeErrorType.LOW_RANK;
-        if (str.length() > 4) return TribeErrorType.LONG_NAME;
+    public TribeResult<String> trySetInitials(String initials, UUID player, MinecraftServer server) {
+        if (initials.length() > 4) return TribeResult.error(TribeError.NAME_TOO_LONG);
+        if (!this.isViceLeaderOrHigher(player)) return TribeResult.error(TribeError.RANK_TOO_LOW);
 
-        this.initials = str;
-        for (String uuid : this.getMembers()) {
-            Player toUpdate = TribeServer.getPlayerByUuid(UUID.fromString(uuid));
+        this.initials = initials;
+
+        for (var member : this.members.values()) {
+            Player toUpdate = server.getPlayerList().getPlayer(member.id());
             if (toUpdate != null) toUpdate.refreshDisplayName();
         }
 
-        return TribeErrorType.SUCCESS;
+        return TribeResult.success(initials);
     }
 
     public String getInitials() {
         return this.initials;
     }
 
-    private void setRank(UUID player, Rank rank) {
-        this.members.put(player.toString(), rank);
+    public void setRank(UUID player, Member.Rank rank, @Nullable UUID source) {
+        if (!isMember(player)) {
+            this.members.put(player, Member.of(player));
+        }
+        var info = this.members.get(player);
+        var oldRank = info.rank();
+        info.setRank(rank);
+
+        // TODO event?
+        if (rank == Member.Rank.LEADER) {
+            this.leaderId = player;
+        }
+
+        MinecraftForge.EVENT_BUS.post(new TribeMemberRankUpdateEvent(this, source, player, oldRank, rank));
     }
 
     public String getName() {
         return this.name;
     }
 
-    public Set<String> getMembers() {
-        return this.members.keySet();
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public int getCount() {
+    public Map<UUID, Member> getMembers() {
+        return this.members;
+    }
+
+    public List<Member> byRank(Member.Rank rank) {
+        return members.values().stream().filter((info) -> info.rank() == rank).toList();
+    }
+
+    public int getMemberCount() {
         return getMembers().size();
     }
 
-    public Rank getRankOf(String playerID) {
-        return this.members.get(playerID);
-    }
-
-    // CANNOT be called from the client side
-    public void broadcastMessageNoCause(TribeSuccessType action, Object... args) {
-        Component text = action.getBlueText(args);
-
-        for (String uuid : this.getMembers()) {
-            Player player = TribeServer.getPlayerByUuid(UUID.fromString(uuid));
-            if (player != null) {
-                player.displayClientMessage(text, false);
-            }
-        }
-    }
-
-    public void broadcastMessage(TribeSuccessType action, UUID causingPlayer, Object... args) {
-        Component text = action.getTextPrefixPlayer(causingPlayer, args);
-        Component plainText = action.getText(args);
-
-        for (String uuid : this.getMembers()) {
-            Player player = TribeServer.getPlayerByUuid(UUID.fromString(uuid));
-            if (player != null) {
-                boolean isCausingPlayer = uuid.equals(causingPlayer.toString());
-                player.displayClientMessage(isCausingPlayer ? plainText : text, false);
-            }
-        }
-    }
-
-
-    public void broadcastMessage(TribeSuccessType action, Player causingPlayer, Object... args) {
-        this.broadcastMessage(action, causingPlayer.getUUID(), args);
+    public Member.Rank getRankOf(UUID playerID) {
+        if (TribesAPI.checkFakePlayerBypass(playerID)) return Member.Rank.BYPASS;
+        return this.members.get(playerID).rank();
     }
 
     public int getTribeTier() {
         List<Integer> membersRequired = TribesConfig.getTierThresholds();
         for (int i = membersRequired.size() - 1; i >= 0; i--) {
-            if (getCount() >= membersRequired.get(i)) return i + 2;
+            if (getMemberCount() >= membersRequired.get(i)) return i + 2;
         }
 
         return 1;
     }
 
-    public JsonObject write() {
-        JsonObject obj = new JsonObject();
+    public static final Codec<Tribe> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            CodecHelper.UUID_STRING.fieldOf("id").forGetter(Tribe::getId),
+            Codec.STRING.fieldOf("name").forGetter(Tribe::getName),
+            Codec.STRING.fieldOf("initials").forGetter(Tribe::getInitials),
+            CodecHelper.UUID_STRING.fieldOf("leader").forGetter(Tribe::getLeaderId),
+            Codec.BOOL.fieldOf("private").forGetter(Tribe::isPrivate),
+            Hemisphere.CODEC.optionalFieldOf("hemisphere", Hemisphere.NONE).forGetter(Tribe::getHemisphereAccess),
+            DeityInfo.CODEC.optionalFieldOf("deity").forGetter(Tribe::getDeityInfo),
+            EffectsInfo.CODEC.fieldOf("effects").forGetter(Tribe::getEffects),
+            Member.MAP_CODEC.fieldOf("members").forGetter(Tribe::getMembers),
+            Relation.MAP_CODEC.fieldOf("relations").forGetter(Tribe::getRelations),
+            CodecHelper.UUID_STRING.listOf().fieldOf("bans").forGetter(Tribe::getBans),
+            AutoBanInfo.CODEC.fieldOf("autoban_ranks").forGetter(Tribe::getAutobanInfo),
+            CodecHelper.UUID_STRING.listOf().fieldOf("pending_invites").forGetter(Tribe::getPendingInvites),
+            CodecHelper.CHUNK_POS.listOf().fieldOf("claims").forGetter(Tribe::getClaimedChunks)
+    ).apply(instance, Tribe::new));
 
-        obj.addProperty("name", this.getName());
-
-        JsonObject memberList = new JsonObject();
-        this.getMembers().forEach((uuid) -> {
-            if (this.getRankOf(uuid) == Rank.LEADER) {
-                obj.addProperty("owner", uuid);
-            } else {
-                memberList.addProperty(uuid, this.getRankOf(uuid).asString());
-            }
-        });
-        obj.add("members", memberList);
-
-        JsonArray banList = new JsonArray();
-        this.bans.forEach(banList::add);
-        obj.add("bans", banList);
-
-        JsonObject relationsList = new JsonObject();
-        this.relationToOtherTribes.forEach((name, relation) -> {
-            relationsList.addProperty(name, relation.asString());
-        });
-        obj.add("relations", relationsList);
-
-        obj.addProperty("initials", this.getInitials());
-
-        JsonArray chunksList = new JsonArray();
-        this.chunks.forEach(chunksList::add);
-        obj.add("chunks", chunksList);
-
-        if (this.hemiAccess == LandClaimHelper.Hemi.NEGATIVE) {
-            obj.addProperty("hemi", 0);
-        } else if (this.hemiAccess == LandClaimHelper.Hemi.NONE || this.hemiAccess == null) {
-            obj.addProperty("hemi", 1);
-        } else if (this.hemiAccess == LandClaimHelper.Hemi.POSITIVE) {
-            obj.addProperty("hemi", 2);
-        }
-        JsonObject effectMap = new JsonObject();
-        this.effects.forEach((effect, level) -> {
-            String key = String.valueOf(MobEffect.getId(effect));
-            effectMap.addProperty(key, level);
-        });
-        obj.add("effects", effectMap);
-
-        obj.addProperty("deity", this.deity == null ? "NONE" : this.deity);
-
-        obj.addProperty("deitytime", this.lastDeityChangeTime);
-        obj.addProperty("effectstime", this.lastEffectsChangeTime);
-
-        obj.addProperty("autobandeaths", this.autobanDeathThreshold);
-        obj.addProperty("autobandays", this.autobanDaysThreshold);
-        this.autobanRank.forEach((rank, value) -> {
-            obj.addProperty("autoban" + rank.asString(), value);
-        });
-
-        obj.addProperty("private", this.isPrivate);
-
-        return obj;
+    public AutoBanInfo getAutobanInfo() {
+        return autobans;
     }
 
-    static Tribe fromJson(JsonObject obj) {
-
-        String name = obj.get("name").getAsString();
-        String owner = obj.get("owner").getAsString();
-        Tribe tribe = new Tribe(name, UUID.fromString(owner));
-
-        JsonObject members = obj.get("members").getAsJsonObject();
-        for (Map.Entry<String, JsonElement> e : members.entrySet()) {
-            Rank r = Rank.fromString(e.getValue().getAsString());
-            tribe.addMember(UUID.fromString(e.getKey()), r);
-        }
-
-        JsonArray bans = obj.get("bans").getAsJsonArray();
-        for (JsonElement e : bans) {
-            tribe.banPlayer(UUID.fromString(owner), UUID.fromString(e.getAsString()));
-        }
-
-        JsonObject relations = obj.get("relations").getAsJsonObject();
-        for (Map.Entry<String, JsonElement> e : relations.entrySet()) {
-            Relation r = Relation.fromString(e.getValue().getAsString());
-            String otherTribeName = e.getKey();
-            tribe.relationToOtherTribes.put(otherTribeName, r);
-        }
-
-        tribe.initials = obj.get("initials").getAsString();
-
-        JsonArray claimedChunks = obj.get("chunks").getAsJsonArray();
-        for (JsonElement e : claimedChunks) {
-            tribe.chunks.add(e.getAsLong());
-        }
-
-        int hemi = obj.get("hemi").getAsInt();
-        if (hemi == 0) {
-            tribe.hemiAccess = LandClaimHelper.Hemi.NEGATIVE;
-        } else if (hemi == 1) {
-            tribe.hemiAccess = LandClaimHelper.Hemi.NONE;
-        } else if (hemi == 2) {
-            tribe.hemiAccess = LandClaimHelper.Hemi.POSITIVE;
-        }
-
-        if (obj.has("effects")) {
-            JsonObject effectMap = obj.get("effects").getAsJsonObject();
-            for (Map.Entry<String, JsonElement> e : effectMap.entrySet()) {
-                //15Oct23 Fixes for null crashing
-                int id = 0;
-                if (e.getKey() != null) {
-                    id = Integer.getInteger(e.getKey());
-                }
-                MobEffect effect = MobEffect.byId(id);
-                tribe.effects.put(effect, e.getValue().getAsInt());
-            }
-        }
-
-        tribe.deity = obj.get("deity").getAsString();
-        if (tribe.deity.equals("NONE")) tribe.deity = null;
-
-        tribe.lastDeityChangeTime = obj.get("deitytime").getAsLong();
-        tribe.lastEffectsChangeTime = obj.get("effectstime").getAsLong();
-
-        tribe.autobanDeathThreshold = obj.get("autobandeaths").getAsInt();
-        tribe.autobanDaysThreshold = obj.get("autobandays").getAsInt();
-        tribe.autobanRank.put(Rank.MEMBER, obj.get("autoban" + Rank.MEMBER.asString()).getAsBoolean());
-        tribe.autobanRank.put(Rank.OFFICER, obj.get("autoban" + Rank.OFFICER.asString()).getAsBoolean());
-        tribe.autobanRank.put(Rank.VICE_LEADER, obj.get("autoban" + Rank.VICE_LEADER.asString()).getAsBoolean());
-        tribe.autobanRank.put(Rank.LEADER, obj.get("autoban" + Rank.LEADER.asString()).getAsBoolean());
-
-        if (obj.has("private")) {
-            tribe.isPrivate = obj.get("private").getAsBoolean();
-        }
-
-        return tribe;
+    public List<UUID> getPendingInvites() {
+        return pendingInvites;
     }
 
-    @Override
-    public String toString() {
-        return write().toString();
+    public boolean isPrivate() {
+        return isPrivate;
     }
 
-    public boolean isLeader(UUID uniqueID) {
-        return this.getRankOf(uniqueID.toString()).asInt() >= 3;
+    public EffectsInfo getEffects() {
+        return this.effects;
     }
 
-    public boolean isViceLeader(UUID uniqueID) {
-        return this.getRankOf(uniqueID.toString()).asInt() >= 2;
+    public Optional<DeityInfo> getDeityInfo() {
+        return Optional.ofNullable(deityInfo);
     }
 
-    public boolean isOfficer(UUID uniqueID) {
-        return this.getRankOf(uniqueID.toString()).asInt() >= 1;
+    public UUID getId() {
+        return id;
+    }
+
+    public Map<UUID, Relation> getRelations() {
+        return relations;
+    }
+
+    public List<UUID> getBans() {
+        return bans;
+    }
+
+    public boolean isMember(UUID playerID) {
+        return this.members.containsKey(playerID);
+    }
+
+    public Hemisphere getHemisphereAccess() {
+        return hemisphereAccess;
+    }
+
+    public boolean isViceLeaderOrHigher(UUID player) {
+        return this.getRankOf(player).isViceLeaderOrHigher();
+    }
+
+    public boolean isOfficerOrHigher(UUID player) {
+        return this.getRankOf(player).isOfficerOrHigher();
     }
 
     public void removeMember(UUID playerID) {
+        removeMember(playerID, null);
+    }
+
+    public void removeMember(UUID playerID, @Nullable UUID source) {
         int oldTier = getTribeTier();
 
-        this.members.remove(playerID.toString());
+        this.members.remove(playerID);
+        MinecraftForge.EVENT_BUS.post(new TribeMemberRemovedEvent(this, source, playerID));
 
-        if (this.members.size() == 0) {
-            TribesManager.forceDeleteTribe(this.getName());
+        if (this.members.isEmpty()) {
+            TribesManager.forceDeleteTribe(this);
             return;
         }
 
-        if (isLeader(playerID)) {
+        if (getRankOf(playerID) == Member.Rank.LEADER) {
             UUID toPromote = null;
 
             // if there's a vice leader pick them, otherwise officer
             // should use a list instead of set to select the person who joined the tribe first
-            for (String testPlayer : getMembers()) {
-                UUID id = UUID.fromString(testPlayer);
-                if (isViceLeader(id)) {
+            for (var testPlayer : this.members.values()) {
+                UUID id = testPlayer.id();
+                if (isViceLeaderOrHigher(id)) {
                     toPromote = id;
                     break;
-                } else if (toPromote == null && isOfficer(id)) {
+                } else if (toPromote == null && isOfficerOrHigher(id)) {
                     toPromote = id;
                 }
             }
 
             // no vice leaders or officer (can't be nobody in tribe cause that would be caught earlier and just delete the tribe)
             if (toPromote == null) {
-                toPromote = UUID.fromString(getMembers().iterator().next());
+                toPromote = this.members.keySet().iterator().next();
             }
 
-            this.setRank(toPromote, Rank.LEADER);
-            // TODO broadcast message but needs world
+            this.setRank(toPromote, Member.Rank.LEADER, source);
+            // TODO broadcast message but needs server
         }
-
 
         // reset effects when you go down a tier
         if (oldTier < getTribeTier()) {
             this.effects.clear();
         }
 
-        Player left = TribeServer.getPlayerByUuid(playerID);
-        if (left != null) this.broadcastMessageNoCause(TribeSuccessType.SOMEONE_LEFT, left);
+        // TODO broadcast message but needs server
+//        Player left = TribeServer.getPlayerByUuid(playerID);
+//        if (left != null) this.broadcastMessageNoCause(TribeSuccessType.SOMEONE_LEFT, left);
     }
 
-    public boolean isBanned(UUID uniqueID) {
-        return this.bans.contains(uniqueID.toString());
+    public boolean isBanned(UUID player) {
+        return this.bans.contains(player);
     }
 
-    public TribeErrorType claimChunk(long chunk, UUID player) {
-        if (!this.isOfficer(player)) return TribeErrorType.LOW_RANK;
-        if (LandClaimHelper.getChunkOwner(chunk) != null) return TribeErrorType.ALREADY_CLAIMED;
+    //TODO move to LandClaimHelper
+    public TribeResult<ChunkPos> claimChunk(ChunkPos chunk, UUID player) {
+        if (!this.isOfficerOrHigher(player)) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (LandClaimHelper.getChunkOwner(chunk) != null) return TribeResult.error(TribeError.ALREADY_CLAIMED);
 
-        if (this.getClaimedChunks().size() >= TribesConfig.getMaxChunksClaimed().get(this.getTribeTier() - 1))
-            return TribeErrorType.CONFIG;
+        if (this.getClaimedChunks().size() >= TribesConfig.getMaxChunksForTier(this.getTribeTier()))
+            return TribeResult.error(TribeError.MAX_CLAIMS_REACHED);
 
-        this.chunks.add(chunk);
+        this.claims.add(chunk);
         LandClaimHelper.setChunkOwner(chunk, this);
 
-        return TribeErrorType.SUCCESS;
+        return TribeResult.success(chunk);
     }
 
-    public TribeErrorType unclaimChunk(long chunk, UUID player) {
-        if (!this.isOfficer(player)) return TribeErrorType.LOW_RANK;
-        if (!LandClaimHelper.getChunkOwner(chunk).equals(this)) return TribeErrorType.ALREADY_CLAIMED;
+    //TODO move to LandClaimHelper
+    public TribeResult<ChunkPos> unclaimChunk(ChunkPos chunk, UUID player) {
+        if (!this.isOfficerOrHigher(player)) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (LandClaimHelper.getChunkOwner(chunk) != this) return TribeResult.error(TribeError.NOT_OWNED);
 
-        this.chunks.remove(chunk);
-        LandClaimHelper.setChunkOwner(chunk, null);
+        this.claims.remove(chunk);
+        LandClaimHelper.unclaimChunk(chunk);
 
-        return TribeErrorType.SUCCESS;
+        return TribeResult.success(chunk);
     }
 
-    public List<Long> getClaimedChunks() {
-        return this.chunks;
-    }
-
-    public boolean equals(Object obj) {
-        if (obj == null) return false;
-        if (obj instanceof Tribe) {
-            return this.getName().equals(((Tribe) obj).getName());
-        }
-        return false;
-    }
-
-    public TribeErrorType validateSelectHemi(Player player, String side) {
-        int runRank = this.getRankOf(player.getUUID().toString()).asInt();
-        if (runRank < TribesConfig.rankToChooseHemi()) return TribeErrorType.LOW_RANK;
-        if (this.hemiAccess != LandClaimHelper.Hemi.NONE) return TribeErrorType.HAVE_HEMI;
-        if (this.getTribeTier() < TribesConfig.getMinTierToSelectHemi()) return TribeErrorType.WEAK_TRIBE;
-        if (TribesConfig.getUseNorthSouthHemisphereDirection()) {
-            if (!side.equals("north") && !side.equals("west")) return TribeErrorType.INVALID_HEMI;
+    public TribeResult<Hemisphere> validateSelectHemi(Player player, String side) {
+        var runRank = this.getRankOf(player.getUUID());
+        if (runRank.compareTo(TribesConfig.rankToChooseHemisphere()) < 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (this.getTribeTier() < TribesConfig.getMinTierToSelectHemi()) return TribeResult.error(TribeError.WEAK_TRIBE);
+        if (this.hemisphereAccess != Hemisphere.NONE) return TribeResult.error(TribeError.ALREADY_HAVE_HEMISPHERE);
+        if (TribesConfig.getHemisphereDirection() == HemisphereDirection.NORTH_SOUTH) {
+            if (!side.equals("north") && !side.equals("south")) return TribeResult.error(TribeError.INVALID_HEMISPHERE);
         } else {
-            if (!side.equals("east") && !side.equals("south")) return TribeErrorType.INVALID_HEMI;
+            if (!side.equals("east") && !side.equals("west")) return TribeResult.error(TribeError.INVALID_HEMISPHERE);
         }
-        return TribeErrorType.SUCCESS;
+        if (side.equals("east") || side.equals("south")) return TribeResult.success(Hemisphere.POSITIVE);
+        else return TribeResult.success(Hemisphere.NEGATIVE);
     }
 
-    public TribeErrorType selectHemi(Player player, String side) {
-        int runRank = this.getRankOf(player.getUUID().toString()).asInt();
-        if (runRank < TribesConfig.rankToChooseHemi()) return TribeErrorType.LOW_RANK;
-        if (this.hemiAccess != LandClaimHelper.Hemi.NONE) return TribeErrorType.HAVE_HEMI;
-        if (this.getTribeTier() < TribesConfig.getMinTierToSelectHemi()) return TribeErrorType.WEAK_TRIBE;
-        if (TribesConfig.getUseNorthSouthHemisphereDirection()) {
-            if (!side.equals("north") && !side.equals("west")) return TribeErrorType.INVALID_HEMI;
-        } else {
-            if (!side.equals("east") && !side.equals("south")) return TribeErrorType.INVALID_HEMI;
-        }
+    public TribeResult<Hemisphere> selectHemisphere(Player player, Hemisphere hemisphere) {
+        var runRank = this.getRankOf(player.getUUID());
+        if (runRank.compareTo(TribesConfig.rankToChooseHemisphere()) < 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (this.getTribeTier() < TribesConfig.getMinTierToSelectHemi()) return TribeResult.error(TribeError.WEAK_TRIBE);
+        if (this.hemisphereAccess != Hemisphere.NONE) return TribeResult.error(TribeError.ALREADY_HAVE_HEMISPHERE);
+        this.hemisphereAccess = hemisphere;
+        LandClaimHelper.hemispheres.get(hemisphere).add(this);
 
-        if (side.equals("east") || side.equals("south")) this.hemiAccess = LandClaimHelper.Hemi.POSITIVE;
-        else this.hemiAccess = LandClaimHelper.Hemi.NEGATIVE;
-        LandClaimHelper.hemispheres.get(this.hemiAccess).add(this);
-
-        broadcastMessage(TribeSuccessType.CHOOSE_HEMI, player, side);
-
-        return TribeErrorType.SUCCESS;
-
+        return TribeResult.success(this.hemisphereAccess);
     }
 
-    public String getOwner() {
-        for (String m : this.members.keySet()) {
-            if (this.getRankOf(m) == Rank.LEADER) {
-                return m;
-            }
-        }
-        return null;
+    public UUID getLeaderId() {
+        return this.leaderId;
     }
 
-    public enum Rank {
-        MEMBER,
-        OFFICER,
-        VICE_LEADER,
-        LEADER;
-
-        public static Rank fromString(String s) {
-            switch (s) {
-                case "member":
-                    return MEMBER;
-                case "officer":
-                    return OFFICER;
-                case "vice leader":
-                    return VICE_LEADER;
-                case "leader":
-                    return LEADER;
-            }
-            return null;
-        }
-
-        public String asString() {
-            switch (this) {
-                case MEMBER:
-                    return "member";
-                case OFFICER:
-                    return "officer";
-                case VICE_LEADER:
-                    return "vice leader";
-                case LEADER:
-                    return "leader";  // do not change this string unless you change it in MyTribeScreen.java as well (I was silly and can't be bothered to fix it incase something breaks)
-            }
-            return null;
-        }
-
-        static Rank fromInt(int s) {
-            switch (s) {
-                default:
-                    return MEMBER;
-                case 1:
-                    return OFFICER;
-                case 2:
-                    return VICE_LEADER;
-                case 3:
-                    return LEADER;
-            }
-        }
-
-        public int asInt() {
-            switch (this) {
-                default:
-                    return 0;
-                case OFFICER:
-                    return 1;
-                case VICE_LEADER:
-                    return 2;
-                case LEADER:
-                    return 3;
-            }
-        }
+    public List<ChunkPos> getClaimedChunks() {
+        return this.claims;
     }
 
-    public enum Relation {
-        ALLY,
-        ENEMY,
-        NONE;
+    public void setDeityInfo(@Nullable DeityInfo deityInfo) {
+        this.deityInfo = deityInfo;
+    }
 
-        static Relation fromString(String s) {
-            switch (s) {
-                default:
-                    return ALLY;
-                case "enemy":
-                    return ENEMY;
-                case "none":
-                    return NONE;
-            }
-        }
-
-        public String asString() {
-            switch (this) {
-                default:
-                    return "ally";
-                case ENEMY:
-                    return "enemy";
-                case NONE:
-                    return "none";
-            }
-        }
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
     }
 }

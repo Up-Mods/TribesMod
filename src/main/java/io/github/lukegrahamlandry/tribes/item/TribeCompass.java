@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
+//TODO store chunks in a player cap
 public class TribeCompass extends Item {
     public static HashMap<UUID, BlockPos> toLookAt = new HashMap<>();
 
@@ -40,20 +41,19 @@ public class TribeCompass extends Item {
         super.appendHoverText(stack, worldIn, tooltip, flagIn);
     }
 
-    public static BlockPos caclulateTargetPosition(ServerPlayer player, ItemStack compass){
+    public static BlockPos caclulateTargetPosition(ServerPlayer player, ItemStack compass) {
         BlockPos posToLook = null;
         ChunkPos start = new ChunkPos(player.blockPosition().getX() >> 4, player.blockPosition().getZ() >> 4);
 
-        List<Long> chunks = LandClaimHelper.getClaimedChunksOrdered(start);  // closest first
-        if (chunks.size() > 0){
-            for (long chunk : chunks){
-                if (TribeCompass.isChunkIgnored(compass, chunk)) continue;
+        List<ChunkPos> chunks = LandClaimHelper.getClaimedChunksOrdered(start);  // closest first
+        if (!chunks.isEmpty()) {
+            for (ChunkPos chunk : chunks) {
+                if (TribeCompass.isChunkIgnored(compass, chunk.toLong())) continue;
 
                 // spin if you're in the chunk to point to
-                if (chunk == start.toLong()) break;
+                if (chunk.equals(start)) break;
 
-                ChunkPos lookchunk = new ChunkPos(chunk);
-                posToLook = new BlockPos((lookchunk.x << 4) + 7, 63 , (lookchunk.z << 4) + 7);
+                posToLook = chunk.getBlockAt(7, 63, 7);
                 break;
             }
         }
@@ -64,20 +64,20 @@ public class TribeCompass extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level worldIn, Player playerIn, InteractionHand handIn) {
         ItemStack stack = playerIn.getItemInHand(handIn);
-        if (!worldIn.isClientSide()){
-            long chunk = worldIn.getChunkAt(playerIn.blockPosition()).getPos().toLong();
-            if (LandClaimHelper.getChunkOwner(chunk) != null){
-                if (isChunkIgnored(stack, chunk)){
-                    removeIgnoredChunk(stack, chunk);
+        if (!worldIn.isClientSide()) {
+            var chunk = worldIn.getChunkAt(playerIn.blockPosition()).getPos();
+            if (LandClaimHelper.getChunkOwner(chunk) != null) {
+                if (isChunkIgnored(stack, chunk.toLong())) {
+                    removeIgnoredChunk(stack, chunk.toLong());
                     playerIn.displayClientMessage(new TextComponent("This chunk will be included in tribe compass searches!"), false);
                 } else {
-                    addIgnoredChunk(stack, chunk);
+                    addIgnoredChunk(stack, chunk.toLong());
                     playerIn.displayClientMessage(new TextComponent("This chunk will be excluded from tribe compass searches!"), false);
                 }
             } else {
                 BlockPos target = caclulateTargetPosition((ServerPlayer) playerIn, stack);
 
-                if (target == null){
+                if (target == null) {
                     playerIn.displayClientMessage(new TextComponent("There are no claimed chunks to find."), false);
                 } else {
                     double myX = playerIn.getX();
@@ -86,34 +86,35 @@ public class TribeCompass extends Item {
                     double dist = Math.pow(Math.pow(target.getX() - myX, 2) + Math.pow(target.getZ() - myZ, 2), 0.5D);
                     int digits = (int) (Math.floor(Math.log10(dist)) + 1);
                     StringBuilder x = new StringBuilder();
-                    for (int i=0;i<digits;i++){
+                    for (int i = 0; i < digits; i++) {
                         x.append("x");
                     }
-                    playerIn.displayClientMessage(new TextComponent("The next claimed chunk is " + x.toString() + " blocks away."), false);
+                    playerIn.displayClientMessage(new TextComponent("The next claimed chunk is " + x + " blocks away."), false);
                 }
             }
         }
         return InteractionResultHolder.success(stack);
     }
 
-    private static List<Long> getIgnoredChunks(CompoundTag tag){
+    //TODO rewrite
+    private static List<Long> getIgnoredChunks(CompoundTag tag) {
         long[] savedIgnoredChunks = tag.contains("ignore") ? tag.getLongArray("ignore") : new long[]{};
         List<Long> ignoredChunks = new ArrayList<>();
         for (long c : savedIgnoredChunks) ignoredChunks.add(c);
         return ignoredChunks;
     }
 
-    public static void addIgnoredChunk(ItemStack stack, long chunk){
+    public static void addIgnoredChunk(ItemStack stack, long chunk) {
         CompoundTag tag = stack.getOrCreateTag();
         List<Long> ignoredChunks = getIgnoredChunks(tag);
-        if (!ignoredChunks.contains(chunk)){
+        if (!ignoredChunks.contains(chunk)) {
             ignoredChunks.add(chunk);
             tag.putLongArray("ignore", ignoredChunks);
             stack.setTag(tag);
         }
     }
 
-    public static void removeIgnoredChunk(ItemStack stack, long chunk){
+    public static void removeIgnoredChunk(ItemStack stack, Long chunk) {
         CompoundTag tag = stack.getOrCreateTag();
         List<Long> ignoredChunks = getIgnoredChunks(tag);
         ignoredChunks.remove(chunk);
@@ -121,53 +122,49 @@ public class TribeCompass extends Item {
         stack.setTag(tag);
     }
 
-    public static boolean isChunkIgnored(ItemStack stack, long chunk){
+    public static boolean isChunkIgnored(ItemStack stack, Long chunk) {
         CompoundTag tag = stack.getOrCreateTag();
         List<Long> ignoredChunks = getIgnoredChunks(tag);
         return ignoredChunks.contains(chunk);
     }
 
     private static final Angle wobble = new Angle();
-    private static final Angle wobbleRandom = new Angle();
+//    private static final Angle wobbleRandom = new Angle();
 
     public static float getAngle(ItemStack stack, @Nullable ClientLevel world, @Nullable LivingEntity player, int param) {
-        Entity entity = (Entity)(player != null ? player : stack.getEntityRepresentation());
+        Entity entity = player != null ? player : stack.getEntityRepresentation();
         if (world == null) return 0F;
         long i = world.getGameTime();
         if (!(entity instanceof Player)) return (Math.floorDiv(i, 20) % 40) * 0.25F;
 
-            if (world == null && entity.level instanceof ClientLevel) {
-                world = (ClientLevel)entity.level;
+        BlockPos blockpos = getCloseClaimedChunk(entity);
+        if (blockpos != null) {
+            boolean flag = player != null && ((Player) player).isLocalPlayer();
+            double d1 = 0.0D;
+            if (flag) {
+                d1 = player.getYRot();
+            } else if (player != null) {
+                d1 = player.yBodyRot;
             }
 
-            BlockPos blockpos = getCloseClaimedChunk(entity);
-            if (blockpos != null) {
-                boolean flag = player != null && ((Player)player).isLocalPlayer();
-                double d1 = 0.0D;
-                if (flag) {
-                    d1 = (double)player.getYRot();
-                } else if (player != null) {
-                    d1 = (double)player.yBodyRot;
+            d1 = Mth.positiveModulo(d1 / 360.0D, 1.0D);
+            double d2 = posToAngle(Vec3.atCenterOf(blockpos), entity) / (double) ((float) Math.PI * 2F);
+            double d3;
+            if (flag) {
+                if (wobble.shouldUpdate(i)) {
+                    wobble.update(i, 0.5D - (d1 - 0.25D));
                 }
 
-                d1 = Mth.positiveModulo(d1 / 360.0D, 1.0D);
-                double d2 = posToAngle(Vec3.atCenterOf(blockpos), entity) / (double)((float)Math.PI * 2F);
-                double d3;
-                if (flag) {
-                    if (wobble.shouldUpdate(i)) {
-                        wobble.update(i, 0.5D - (d1 - 0.25D));
-                    }
-
-                    d3 = d2 + wobble.rotation;
-                } else {
-                    d3 = 0.5D - (d1 - 0.25D - d2);
-                }
-
-                return Mth.positiveModulo((float)d3, 1.0F);
+                d3 = d2 + wobble.rotation;
             } else {
-                // spin
-                return (float) (((i * 10) % 360)  / 360.0D);
+                d3 = 0.5D - (d1 - 0.25D - d2);
             }
+
+            return Mth.positiveModulo((float) d3, 1.0F);
+        } else {
+            // spin
+            return (float) (((i * 10) % 360) / 360.0D);
+        }
 
     }
 

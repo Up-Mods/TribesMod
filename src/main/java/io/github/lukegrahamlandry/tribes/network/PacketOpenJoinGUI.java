@@ -21,7 +21,7 @@ public class PacketOpenJoinGUI {
     public PacketOpenJoinGUI(ServerPlayer player) {
         this.tribes = new HashMap<>();
         TribesManager.getTribes().forEach((tribe) -> {
-            this.tribes.put(tribe.getName(), tribe.getCount());
+            this.tribes.put(tribe.getName(), tribe.getMemberCount());
         });
 
         this.allowClose = TribesManager.playerHasTribe(player.getUUID())|| !TribesConfig.isTribeRequired();

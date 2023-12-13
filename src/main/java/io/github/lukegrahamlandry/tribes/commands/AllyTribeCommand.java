@@ -4,11 +4,9 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.github.lukegrahamlandry.tribes.api.tribe.Relation;
 import io.github.lukegrahamlandry.tribes.commands.util.TribeArgumentType;
-import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
+import io.github.lukegrahamlandry.tribes.tribe_data.*;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.entity.player.Player;
@@ -19,7 +17,7 @@ public class AllyTribeCommand {
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(AllyTribeCommand::handleAlly)
                 ).executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeErrorType.ARG_TRIBE.getText(), false);
+                            ctx.getSource().sendSuccess(TribeError.ARG_TRIBE.getText(), false);
                             return 0;
                         }
                 );
@@ -29,15 +27,15 @@ public class AllyTribeCommand {
     public static int handleAlly(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
         Player player = source.getSource().getPlayerOrException();
         Tribe otherTribe = TribeArgumentType.getTribe(source, "tribe");
-        if (otherTribe == null) return Command.SINGLE_SUCCESS;
+        var server = source.getSource().getServer();
 
         Tribe yourTribe = TribesManager.getTribeOf(player.getUUID());
 
-        TribeErrorType response = yourTribe.setRelation(player.getUUID(), otherTribe, Tribe.Relation.ALLY);
-        if (response == TribeErrorType.SUCCESS){
-            yourTribe.broadcastMessage(TribeSuccessType.ALLY_TRIBE, player, otherTribe);
+        var result = yourTribe.setRelation(player.getUUID(), otherTribe, Relation.Type.ALLY);
+        if (result.success()) {
+            TribeHelper.broadcastMessage(yourTribe, TribeSuccessType.ALLY_TRIBE, player, server, otherTribe);
         } else {
-            source.getSource().sendSuccess(response.getText(), true);
+            source.getSource().sendFailure(result.error().getText());
         }
 
         return Command.SINGLE_SUCCESS;

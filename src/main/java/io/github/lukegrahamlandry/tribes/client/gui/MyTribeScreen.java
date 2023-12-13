@@ -1,6 +1,7 @@
 package io.github.lukegrahamlandry.tribes.client.gui;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import io.github.lukegrahamlandry.tribes.api.tribe.Member;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
 import io.github.lukegrahamlandry.tribes.network.PacketLeaveTribe;
 import io.github.lukegrahamlandry.tribes.network.PacketSendEffects;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public class MyTribeScreen extends TribeScreen {
     private final String tribeName;
-    private final String rank;
+    private final Member.Rank rank;
     private final String owner;
     private final int members;
     private final int tier;
@@ -23,7 +24,7 @@ public class MyTribeScreen extends TribeScreen {
     private Button nextButton;
     private int page = 0;
 
-    public MyTribeScreen(String tribeName, String rank, String owner, int members, int tier, List<String> goodTribes, List<String> badTribes) {
+    public MyTribeScreen(String tribeName, Member.Rank rank, String owner, int members, int tier, List<String> goodTribes, List<String> badTribes) {
         super(".joinTribeScreen", "textures/gui/join_tribe.png", 185, 160, false);
         this.tribeName = tribeName;
         this.rank = rank;
@@ -53,7 +54,7 @@ public class MyTribeScreen extends TribeScreen {
                 this.onClose();
             }
         }));
-        this.effectsButton.active = this.rank.equals("leader");
+        this.effectsButton.active = this.rank.isViceLeaderOrHigher();
 
         this.leaveButton = this.addRenderableWidget(new Button(this.guiLeft + 15, this.guiTop + 125, 75, 20, new TextComponent("Leave Tribe"), (p_214318_1_) -> {
             this.onClose();

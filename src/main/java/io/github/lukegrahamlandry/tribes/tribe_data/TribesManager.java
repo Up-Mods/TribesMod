@@ -1,138 +1,114 @@
 package io.github.lukegrahamlandry.tribes.tribe_data;
 
-import com.google.gson.*;
-import io.github.lukegrahamlandry.tribes.TribesMain;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.mojang.logging.LogUtils;
+import com.mojang.serialization.JsonOps;
+import io.github.lukegrahamlandry.tribes.api.tribe.Member;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.*;
 
 public class TribesManager {
-    static Map<String, Tribe> tribes = new HashMap<>();
 
-    public static TribeErrorType createNewTribe(String name, Player player){
-        if (player.getCommandSenderWorld().isClientSide()){
-            TribesMain.LOGGER.error("And the lord came down from the heavens and said 'thou shall not create a tribe on the render thread'");
-            return TribeErrorType.CLIENT;
-        }
+    private static final Logger logger = LogUtils.getLogger();
 
-        if (name.length() > TribesConfig.getMaxTribeNameLength()) return TribeErrorType.LONG_NAME;  // should be caught by the create GUI
-        if (playerHasTribe(player.getUUID())) return TribeErrorType.IN_TRIBE;
-        if (getTribes().size() >= TribesConfig.getMaxNumberOfTribes()) return TribeErrorType.CONFIG;
+    private static final Set<UUID> FAKE_PLAYER_BYPASS_CHECKS = new HashSet<>();
+    private static Map<UUID, Tribe> tribes = new HashMap<>();
 
-        return addNewTribe(new Tribe(name, player.getUUID()));
+    public static TribeResult<Tribe> createNewTribe(String name, Player player) {
+        if (playerHasTribe(player.getUUID())) return TribeResult.error(TribeError.IN_TRIBE);
+        if (name.length() > TribesConfig.getMaxTribeNameLength())
+            return TribeResult.error(TribeError.NAME_TOO_LONG);  // should be caught by the create GUI
+        if (getTribes().size() >= TribesConfig.getMaxNumberOfTribes()) return TribeResult.error(TribeError.CONFIG);
+
+        //TODO pass along that boolean
+        var tribe = Tribe.of(name, player.getUUID(), false);
+        tribes.put(tribe.getId(), tribe);
+        return TribeResult.success(tribe);
     }
 
-    public static TribeErrorType joinTribe(String name, Player player){
-        if (playerHasTribe(player.getUUID())) return TribeErrorType.IN_TRIBE;
-        if (isNameAvailable(name)) return TribeErrorType.INVALID_TRIBE;
+    public static TribeResult<Member> joinTribe(Tribe tribe, Player player) {
+        if (playerHasTribe(player.getUUID())) return TribeResult.error(TribeError.IN_TRIBE);
 
-        Tribe tribe = getTribe(name);
+        if (tribe.isPrivate() && !tribe.getPendingInvites().contains(player.getUUID()))
+            return TribeResult.error(TribeError.IS_PRIVATE);
 
-        if (tribe.isPrivate && !tribe.pendingInvites.contains(player.getUUID().toString())) return TribeErrorType.IS_PRIVATE;
+        TribeHelper.broadcastMessageNoCause(tribe, TribeSuccessType.SOMEONE_JOINED, player.getServer(), player);
 
-        tribe.broadcastMessageNoCause(TribeSuccessType.SOMEONE_JOINED, player);
-
-        return tribe.addMember(player.getUUID(), Tribe.Rank.MEMBER);
+        return tribe.addMember(player.getUUID(), Member.Rank.MEMBER);
     }
 
-    public static TribeErrorType deleteTribe(String name, UUID playerID){
-        if (isNameAvailable(name)) return TribeErrorType.INVALID_TRIBE;
+    public static TribeResult<Void> deleteTribe(Tribe tribe, UUID playerID, MinecraftServer server) {
+        if (tribe.getRankOf(playerID) != Member.Rank.LEADER) return TribeResult.error(TribeError.RANK_TOO_LOW);
 
-        if (!getTribe(name).isLeader(playerID)) return TribeErrorType.LOW_RANK;
+        LandClaimHelper.forgetTribe(tribe);
+        TribeHelper.broadcastMessage(tribe, TribeSuccessType.DELETE_TRIBE, playerID, server);
+        tribes.remove(tribe.getId(), tribe);
 
-        LandClaimHelper.forgetTribe(tribes.get(name));
-        getTribe(name).broadcastMessage(TribeSuccessType.DELETE_TRIBE, playerID);
-        tribes.remove(name);
-
-        return TribeErrorType.SUCCESS;
+        return TribeResult.empty_success();
     }
 
-    public static void forceDeleteTribe(String name){
-        if (!isNameAvailable(name)) {
-            LandClaimHelper.forgetTribe(tribes.get(name));
-            tribes.remove(name);
-        }
+    public static void forceDeleteTribe(Tribe tribe) {
+        LandClaimHelper.forgetTribe(tribe);
+        tribes.remove(tribe.getId());
     }
 
-    static public TribeErrorType addNewTribe(Tribe newTribe){
-        if (isNameAvailable(newTribe.name)){
-            TribesMain.LOGGER.debug("new tribe: " + newTribe.name);
-            tribes.put(newTribe.name, newTribe);
-            return TribeErrorType.SUCCESS;
-        } else {
-            return TribeErrorType.NAME_TAKEN;
-        }
+    static public boolean isNameAvailable(String name) {
+        return tribes.values().stream().noneMatch(tribe -> tribe.getName().equalsIgnoreCase(name));
     }
 
-    static public boolean isNameAvailable(String name){
-        return !tribes.containsKey(name);
-    }
-
-    static public List<Tribe> getTribes(){
-        if (tribes.isEmpty()){
-            return new ArrayList<>();
+    static public List<Tribe> getTribes() {
+        if (tribes.isEmpty()) {
+            return List.of();
         }
         return new ArrayList<>(tribes.values());
     }
 
-    public static Tribe getTribe(String name){
-        return tribes.get(name);
+    public static Tribe getTribe(UUID id) {
+        return tribes.get(id);
     }
 
-    public static boolean playerHasTribe(UUID playerID){
+    @Nullable
+    public static Tribe findTribe(String name) {
+        return tribes.values().stream().filter(tribe -> tribe.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+    }
+
+    public static boolean playerHasTribe(UUID playerID) {
         return getTribeOf(playerID) != null;
     }
 
     public static Tribe getTribeOf(UUID playerID) {
-        if (getTribes().size() == 0) {
-            return null;
-        }
-
-        for (Tribe testTribe : getTribes()){
-            if (testTribe.getMembers().contains(playerID.toString()))
-               return testTribe;
-        }
-
-        return null;
+        return tribes.values().stream().filter(tribe -> tribe.isMember(playerID)).findFirst().orElse(null);
     }
 
-    public static JsonArray toJson() {
-        JsonArray tribeListJson = new JsonArray();
-        for (Tribe tribe : getTribes()){
-            tribeListJson.add(tribe.write());
-        }
-
-        return tribeListJson;
+    public static JsonElement toJson() {
+        return Tribe.CODEC.listOf().encodeStart(JsonOps.INSTANCE, List.copyOf(tribes.values())).resultOrPartial(logger::error).orElseThrow();
     }
 
     public static void fromJson(JsonArray obj) {
 
         tribes.clear();
-        for (JsonElement e : obj) {
-            Tribe t = Tribe.fromJson(e.getAsJsonObject());
-            addNewTribe(t);
-        }
+
+        Tribe.CODEC.listOf().parse(JsonOps.INSTANCE, obj).resultOrPartial(logger::error).orElseThrow().forEach(tribe -> tribes.put(tribe.getId(), tribe));
     }
 
-    public static TribeErrorType leaveTribe(Player player) {
-        if (!playerHasTribe(player.getUUID())) return TribeErrorType.YOU_NOT_IN_TRIBE;
+    public static TribeResult<Void> leaveTribe(Player player) {
+        if (!playerHasTribe(player.getUUID())) return TribeResult.error(TribeError.YOU_NOT_IN_TRIBE);
         Tribe tribe = getTribeOf(player.getUUID());
         tribe.removeMember(player.getUUID());
-        return TribeErrorType.SUCCESS;
+        return TribeResult.empty_success();
     }
 
     public static List<Tribe> getBans(Player playerToCheck) {
-        List<Tribe> bans = new ArrayList<>();
-        for (Tribe tribe : getTribes()){
-            if (tribe.isBanned(playerToCheck.getUUID())){
-                bans.add(tribe);
-            }
-        }
-        return bans;
+        return tribes.values().stream().filter(tribe -> tribe.isBanned(playerToCheck.getUUID())).toList();
     }
 
-    public static int getNumberOfGoodEffects(Player player){
+    public static int getNumberOfGoodEffects(Player player) {
         int tier = getTribeOf(player.getUUID()).getTribeTier();
         return TribesConfig.getTierPositiveEffects().get(tier - 1);
     }
@@ -142,10 +118,16 @@ public class TribesManager {
         return TribesConfig.getTierNegativeEffects().get(tier - 1);
     }
 
-    public static void renameTribe(String name, String newname) {
-        if (isNameAvailable(newname) && !isNameAvailable(name)){
-            tribes.put(newname, tribes.get(name));
-            tribes.remove(name);
-        }
+    public static void renameTribe(Tribe tribe, String newName) {
+        //TODO event
+        tribe.setName(newName);
+    }
+
+    public static void registerFakePlayer(UUID id) {
+        FAKE_PLAYER_BYPASS_CHECKS.add(id);
+    }
+
+    public static boolean doesPlayerBypassChecks(UUID id) {
+        return FAKE_PLAYER_BYPASS_CHECKS.contains(id);
     }
 }

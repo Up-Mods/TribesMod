@@ -1,6 +1,5 @@
 package io.github.lukegrahamlandry.tribes.network;
 
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.network.FriendlyByteBuf;
@@ -9,7 +8,7 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 public class PacketCreateTribe {
-    private String tribeName;
+    private final String tribeName;
 
     // Read tribe name from PacketBuffer
     public PacketCreateTribe(FriendlyByteBuf buf) {
@@ -17,21 +16,22 @@ public class PacketCreateTribe {
     }
 
     // Write tribe name to PacketBuffer
-    public void toBytes(FriendlyByteBuf buf){
+    public void toBytes(FriendlyByteBuf buf) {
         buf.writeUtf(this.tribeName);
     }
 
-    public PacketCreateTribe(String tribeNameIn){
+    public PacketCreateTribe(String tribeNameIn) {
         this.tribeName = tribeNameIn;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx){
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+        var player = ctx.get().getSender();
         ctx.get().enqueueWork(() -> {
-            TribeErrorType result = TribesManager.createNewTribe(tribeName, ctx.get().getSender());
-            if (result == TribeErrorType.SUCCESS){
-                ctx.get().getSender().sendMessage(TribeSuccessType.MADE_TRIBE.getText(tribeName), ctx.get().getSender().getUUID());
+            var result = TribesManager.createNewTribe(tribeName, player);
+            if (result.success()) {
+                player.displayClientMessage(TribeSuccessType.MADE_TRIBE.getText(result.value().getName()), false);
             } else {
-                ctx.get().getSender().sendMessage(result.getText(), ctx.get().getSender().getUUID());
+                player.displayClientMessage(result.error().getText(), false);
             }
         });
         ctx.get().setPacketHandled(true);

@@ -1,5 +1,7 @@
 package io.github.lukegrahamlandry.tribes.network;
 
+import io.github.lukegrahamlandry.tribes.api.tribe.EffectsInfo;
+import io.github.lukegrahamlandry.tribes.api.tribe.TribeEffect;
 import io.github.lukegrahamlandry.tribes.client.gui.TribeEffectScreen;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
@@ -12,53 +14,56 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.network.NetworkEvent;
 
-import java.util.HashMap;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class PacketOpenEffectGUI {
     private final int numGood;
     private final int numBad;
-    private final HashMap<MobEffect, Integer> effects;
+    private final EffectsInfo effects;
 
     public PacketOpenEffectGUI(ServerPlayer player) {
         this.numGood = TribesManager.getNumberOfGoodEffects(player);
         this.numBad = TribesManager.getNumberOfBadEffects(player);
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
-        this.effects = tribe.effects;
+        this.effects = tribe.getEffects();
     }
 
-    public PacketOpenEffectGUI(int g, int b, HashMap<MobEffect, Integer> e) {
-        this.numGood = g;
-        this.numBad = b;
-        this.effects = e;
+    public PacketOpenEffectGUI(int good, int bad, EffectsInfo effects) {
+        this.numGood = good;
+        this.numBad = bad;
+        this.effects = effects;
     }
 
     public static PacketOpenEffectGUI decode(FriendlyByteBuf buf) {
         int goodNum = buf.readInt();
         int badNum = buf.readInt();
-        HashMap<MobEffect, Integer> currentEffects = new HashMap<>();
-        while (true){
-            boolean done = buf.readBoolean();
-            if (done) break;
-            else {
-                MobEffect effect = MobEffect.byId(buf.readInt());
-                int level = buf.readInt();
-                currentEffects.put(effect, level);
-            }
+
+        var lastChanged = Instant.ofEpochSecond(buf.readLong());
+        int size = buf.readVarInt();
+        List<TribeEffect> effectList = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            int level = buf.readVarInt();
+            MobEffect effect = buf.readRegistryIdSafe(MobEffect.class);
+            effectList.add(new TribeEffect(effect, level));
         }
 
-        return new PacketOpenEffectGUI(goodNum, badNum, currentEffects);
+        return new PacketOpenEffectGUI(goodNum, badNum, new EffectsInfo(lastChanged, effectList));
     }
 
     public static void encode(PacketOpenEffectGUI packet, FriendlyByteBuf buf) {
-        buf.writeInt(packet.numGood);
-        buf.writeInt(packet.numBad);
-        packet.effects.forEach((effect, level) -> {
-            buf.writeBoolean(false);
-            buf.writeInt(MobEffect.getId(effect));
-            buf.writeInt(level);
+        buf.writeVarInt(packet.numGood);
+        buf.writeVarInt(packet.numBad);
+
+        packet.effects.getLastChanged().ifPresentOrElse((time) -> buf.writeLong(time.getEpochSecond()), () -> buf.writeLong(0));
+
+        buf.writeVarInt(packet.effects.getEffects().size());
+        packet.effects.getEffects().forEach((tribeEffect) -> {
+            buf.writeVarInt(tribeEffect.level());
+            buf.writeRegistryId(tribeEffect.effect());
         });
-        buf.writeBoolean(true);
     }
 
     public static void handle(PacketOpenEffectGUI packet, Supplier<NetworkEvent.Context> ctx) {

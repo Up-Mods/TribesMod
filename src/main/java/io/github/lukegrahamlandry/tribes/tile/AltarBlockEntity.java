@@ -10,8 +10,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class AltarTileEntity extends BlockEntity {
-    public AltarTileEntity(BlockPos pos, BlockState state) {
+public class AltarBlockEntity extends BlockEntity {
+    public AltarBlockEntity(BlockPos pos, BlockState state) {
         super(TileEntityInit.ALTAR.get(), pos, state);
     }
 

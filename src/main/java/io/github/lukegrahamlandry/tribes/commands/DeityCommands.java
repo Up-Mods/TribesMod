@@ -4,6 +4,8 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.github.lukegrahamlandry.tribes.api.tribe.DeityInfo;
+import io.github.lukegrahamlandry.tribes.api.tribe.Member;
 import io.github.lukegrahamlandry.tribes.commands.util.DeityArgumentType;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.BannarInit;
@@ -18,6 +20,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.entity.BannerPattern;
+import net.minecraftforge.items.ItemHandlerHelper;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 public class DeityCommands {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
@@ -29,14 +35,14 @@ public class DeityCommands {
                         .then(Commands.argument("deity", DeityArgumentType.tribe())
                                 .executes(DeityCommands::handleChoose))
                         .executes(ctx -> {
-                            ctx.getSource().sendFailure(TribeErrorType.ARG_DEITY.getText());
+                            ctx.getSource().sendFailure(TribeError.ARG_DEITY.getText());
                             return 0;
                         }))
                 .then(Commands.literal("describe")
                         .then(Commands.argument("deity", DeityArgumentType.tribe())
                                 .executes(DeityCommands::handleDescribe))
                         .executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeErrorType.ARG_DEITY.getText(), false);
+                            ctx.getSource().sendSuccess(TribeError.ARG_DEITY.getText(), false);
                             return 0;
                         }))
                 ;
@@ -47,25 +53,24 @@ public class DeityCommands {
         ServerPlayer player = source.getSource().getPlayerOrException();
 
         if (!TribesManager.playerHasTribe(player.getUUID())) {
-            source.getSource().sendFailure(TribeErrorType.YOU_NOT_IN_TRIBE.getText());
-        } else if (deity != null) {
-            Tribe tribe = TribesManager.getTribeOf(player.getUUID());
+            source.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
+        }
+        Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
-            if (tribe.isLeader(player.getUUID())) {
-                long timeSinceLastChange = System.currentTimeMillis() - tribe.lastDeityChangeTime;
-                if (timeSinceLastChange < TribesConfig.betweenDeityChangeMillis()) {
-                    long hoursToWait = (TribesConfig.betweenDeityChangeMillis() - timeSinceLastChange) / 1000 / 60 / 60;
-                    source.getSource().sendSuccess(TribeErrorType.getWaitText(hoursToWait), true);
-                } else {
-                    ConfirmCommand.add(player, () -> {
-                        tribe.deity = deity.key;
-                        tribe.lastDeityChangeTime = System.currentTimeMillis();
-                        source.getSource().sendSuccess(TribeSuccessType.CHOOSE_DEITY.getText(deity.displayName), true);
-                    });
-                }
-            } else {
-                source.getSource().sendSuccess(TribeErrorType.LOW_RANK.getText(), true);
-            }
+        if (tribe.getRankOf(player.getUUID()) != Member.Rank.LEADER) {
+            source.getSource().sendFailure(TribeError.RANK_TOO_LOW.getText());
+            return 0;
+        }
+        Instant lastChange = tribe.getDeityInfo().map(DeityInfo::getLastChanged).orElse(Instant.MIN);
+        if (lastChange.isBefore(Instant.now().minus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS))) {
+            long hoursToWait = Instant.now().until(lastChange.plus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS), ChronoUnit.HOURS);
+            source.getSource().sendFailure(TribeError.getWaitText(hoursToWait));
+        } else {
+            ConfirmCommand.add(player, () -> {
+                tribe.setDeityInfo(new DeityInfo(deity.key, Instant.now()));
+                source.getSource().sendSuccess(TribeSuccessType.CHOOSE_DEITY.getText(deity.displayName), true);
+            });
         }
 
         return Command.SINGLE_SUCCESS;
@@ -96,98 +101,97 @@ public class DeityCommands {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int createBanner(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
-        ServerPlayer player = source.getSource().getPlayerOrException();
+    private static int createBanner(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
 
         if (!TribesManager.playerHasTribe(player.getUUID())) {
-            source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
-        } else {
-            String deityName = TribesManager.getTribeOf(player.getUUID()).deity;
-            if (deityName == null) {
-                source.getSource().sendSuccess(TribeErrorType.NO_DEITY.getText(), true);
-            } else {
-                ItemStack banner = player.getItemInHand(InteractionHand.MAIN_HAND);
-
-                if (banner.getItem() instanceof BannerItem) {
-                    DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
-
-                    // dont actually need the BannerPattern here, just hashname
-                    BannerPattern bannerpattern = BannarInit.get(data.bannerKey);
-                    DyeColor dyecolor = DyeColor.WHITE;
-                    CompoundTag compoundnbt = banner.getOrCreateTagElement("BlockEntityTag");
-                    ListTag listnbt;
-                    if (compoundnbt.contains("Patterns", 9)) {
-                        listnbt = compoundnbt.getList("Patterns", 10);
-                    } else {
-                        listnbt = new ListTag();
-                        compoundnbt.put("Patterns", listnbt);
-                    }
-
-                    CompoundTag compoundnbt1 = new CompoundTag();
-                    compoundnbt1.putString("Pattern", bannerpattern.getHashname());
-                    compoundnbt1.putInt("Color", dyecolor.getId());
-                    listnbt.add(compoundnbt1);
-
-                    player.setItemInHand(InteractionHand.MAIN_HAND, banner);
-
-                    source.getSource().sendSuccess(TribeSuccessType.MAKE_HOLY_BANNER.getText(), false);
-                } else {
-                    source.getSource().sendSuccess(TribeErrorType.HOLD_BANNER.getText(), true);
-                }
-            }
+            context.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
         }
+
+        String deityName = TribesManager.getTribeOf(player.getUUID()).getDeityInfo().map(DeityInfo::getName).orElse(null);
+        if (deityName == null) {
+            context.getSource().sendFailure(TribeError.NO_DEITY.getText());
+            return 0;
+        }
+
+        ItemStack banner = player.getItemInHand(InteractionHand.MAIN_HAND);
+        if (!(banner.getItem() instanceof BannerItem)) {
+            context.getSource().sendFailure(TribeError.HOLD_BANNER.getText());
+            return 0;
+        }
+
+        DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
+
+        // dont actually need the BannerPattern here, just hashname
+        BannerPattern bannerpattern = BannarInit.get(data.bannerKey);
+        DyeColor dyecolor = DyeColor.WHITE;
+        CompoundTag compoundnbt = banner.getOrCreateTagElement("BlockEntityTag");
+        ListTag listnbt = compoundnbt.getList("Patterns", Tag.TAG_COMPOUND);
+
+        CompoundTag compoundnbt1 = new CompoundTag();
+        compoundnbt1.putString("Pattern", bannerpattern.getHashname());
+        compoundnbt1.putInt("Color", dyecolor.getId());
+        listnbt.add(compoundnbt1);
+        compoundnbt.put("Patterns", listnbt);
+
+        player.setItemInHand(InteractionHand.MAIN_HAND, banner);
+
+        context.getSource().sendSuccess(TribeSuccessType.MAKE_HOLY_BANNER.getText(), false);
 
         return Command.SINGLE_SUCCESS;
     }
 
 
-    private static int createBook(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
-        ServerPlayer player = source.getSource().getPlayerOrException();
+    private static int createBook(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
 
         if (!TribesManager.playerHasTribe(player.getUUID())) {
-            source.getSource().sendSuccess(TribeErrorType.YOU_NOT_IN_TRIBE.getText(), true);
-        } else {
-            String deityName = TribesManager.getTribeOf(player.getUUID()).deity;
-            if (deityName == null) {
-                source.getSource().sendSuccess(TribeErrorType.NO_DEITY.getText(), true);
-            } else {
-                Item currentlyHeld = player.getItemInHand(InteractionHand.MAIN_HAND).getItem();
-
-                if (currentlyHeld == Items.BOOK || currentlyHeld == Items.WRITABLE_BOOK || currentlyHeld == Items.BOOKSHELF) {
-                    DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
-                    ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
-
-                    CompoundTag tag = new CompoundTag();
-
-                    tag.putString("author", data.bookAuthor);
-                    tag.putString("title", data.bookTitle);
-                    tag.putBoolean("resolved", true);
-
-                    ListTag pages = new ListTag();
-                    for (String content : data.bookPages) {
-                        Tag page = StringTag.valueOf("{\"text\": \"" + content + "\"}");
-                        pages.add(page);
-                    }
-                    tag.put("pages", pages);
-
-                    book.setTag(tag);
-
-                    player.getItemInHand(InteractionHand.MAIN_HAND).shrink(1);
-                    player.drop(book, true);
-
-                    if (currentlyHeld == Items.BOOKSHELF) {
-                        player.drop(book, true);
-                        player.drop(book, true);
-                    }
-
-                    source.getSource().sendSuccess(TribeSuccessType.MAKE_HOLY_BOOK.getText(), false);
-                } else {
-                    source.getSource().sendSuccess(TribeErrorType.HOLD_BOOK.getText(), true);
-                }
-            }
+            context.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
         }
 
-        return Command.SINGLE_SUCCESS;
+        String deityName = TribesManager.getTribeOf(player.getUUID()).getDeityInfo().map(DeityInfo::getName).orElse(null);
+        if (deityName == null) {
+            context.getSource().sendFailure(TribeError.NO_DEITY.getText());
+            return 0;
+        }
+
+        Item currentlyHeld = player.getItemInHand(InteractionHand.MAIN_HAND).getItem();
+
+        if (currentlyHeld != Items.BOOK && currentlyHeld != Items.WRITABLE_BOOK && currentlyHeld != Items.BOOKSHELF) {
+            context.getSource().sendFailure(TribeError.HOLD_BOOK.getText());
+            return 0;
+        }
+
+        DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
+        ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
+
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("author", data.bookAuthor);
+        tag.putString("title", data.bookTitle);
+        tag.putBoolean("resolved", true);
+
+        ListTag pages = new ListTag();
+        for (String content : data.bookPages) {
+            Tag page = StringTag.valueOf("{\"text\": \"" + content + "\"}");
+            pages.add(page);
+        }
+        tag.put("pages", pages);
+
+        book.setTag(tag);
+
+        player.getItemInHand(InteractionHand.MAIN_HAND).shrink(1);
+
+        int copies = currentlyHeld == Items.BOOKSHELF ? 3 : 1;
+        for (int i = 0; i < copies; i++) {
+            ItemHandlerHelper.giveItemToPlayer(player, book.copy());
+        }
+
+        context.getSource().sendSuccess(TribeSuccessType.MAKE_HOLY_BOOK.getText(), false);
+
+        return copies;
     }
 
 }

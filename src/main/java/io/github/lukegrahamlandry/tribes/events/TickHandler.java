@@ -1,6 +1,7 @@
 package io.github.lukegrahamlandry.tribes.events;
 
 
+import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
 import io.github.lukegrahamlandry.tribes.item.TribeCompass;
@@ -19,8 +20,9 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(modid = TribesMain.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class TickHandler {
 
     private static boolean check_scheduled = true;
@@ -48,7 +50,7 @@ public class TickHandler {
             // apply tribe effects
             Tribe tribe = TribesManager.getTribeOf(player.getUUID());
             if (tribe != null) {
-                tribe.effects.forEach((effect, level) -> player.addEffect(new MobEffectInstance(effect, 5 * 20, level - 1)));
+                tribe.getEffects().getEffects().forEach(effectInfo -> player.addEffect(new MobEffectInstance(effectInfo.effect(), 5 * 20, effectInfo.level() - 1)));
             } else if (TribesConfig.isTribeRequired()) {
                 NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new PacketOpenJoinGUI(player));
             }
@@ -63,8 +65,8 @@ public class TickHandler {
     }
 
     @SubscribeEvent
-    public static void tickDeathPunishments(TickEvent.WorldTickEvent event) {
-        if (event.side.isClient() || event.phase != TickEvent.Phase.START) return;
+    public static void tickDeathPunishments(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
         timer++;
 
         if (timer >= ONE_MINUTE) {
@@ -84,7 +86,7 @@ public class TickHandler {
 
         if (check_scheduled && event.haveTime()) {
             // remove inactive people from their tribes
-            RemoveInactives.check();
+            RemoveInactives.check(ServerLifecycleHooks.getCurrentServer());
             check_scheduled = false;
         }
     }

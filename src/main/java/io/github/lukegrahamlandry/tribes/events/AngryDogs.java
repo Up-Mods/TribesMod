@@ -1,5 +1,7 @@
 package io.github.lukegrahamlandry.tribes.events;
 
+import io.github.lukegrahamlandry.tribes.TribesMain;
+import io.github.lukegrahamlandry.tribes.api.tribe.Relation;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,7 +16,7 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.UUID;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(modid = TribesMain.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class AngryDogs {
     @SubscribeEvent
     public static void addTribeSlayGoal(EntityJoinWorldEvent event){
@@ -29,7 +31,7 @@ public class AngryDogs {
             Tribe checkTribe = TribesManager.getTribeOf(entity.getUUID());
             if (ownerTribe == null || checkTribe == null) return false;
 
-            return ownerTribe.relationToOtherTribes.containsKey(checkTribe.getName()) && ownerTribe.relationToOtherTribes.get(checkTribe.getName()) == Tribe.Relation.ENEMY;
+            return ownerTribe.getRelations().containsKey(checkTribe.getId()) && ownerTribe.getRelations().get(checkTribe.getId()).type() == Relation.Type.ENEMY;
         }));
     }
 }

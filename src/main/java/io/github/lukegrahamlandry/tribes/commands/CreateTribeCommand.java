@@ -2,10 +2,8 @@ package io.github.lukegrahamlandry.tribes.commands;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.ArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeErrorType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.commands.CommandSourceStack;
@@ -13,30 +11,27 @@ import net.minecraft.commands.Commands;
 import net.minecraft.world.entity.player.Player;
 
 public class CreateTribeCommand {
-    public static ArgumentBuilder<CommandSourceStack, ?> register() {
+    public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return Commands.literal("create")
                 .then(Commands.argument("name", StringArgumentType.greedyString())
-                        .executes(CreateTribeCommand::handleCreate)
+                        .executes(ctx -> {
+                            Player player = ctx.getSource().getPlayerOrException();
+                            String name = StringArgumentType.getString(ctx, "name");
+
+                            var result = TribesManager.createNewTribe(name, player);
+                            if (!result.success()) {
+                                ctx.getSource().sendFailure(result.error().getText());
+                                return 0;
+                            }
+                            ctx.getSource().sendSuccess(TribeSuccessType.MADE_TRIBE.getText(result.value().getName()), true);
+
+                            return Command.SINGLE_SUCCESS;
+                        })
                 ).executes(ctx -> {
-                    ctx.getSource().sendSuccess(TribeErrorType.ARG_MISSING.getText(), false);
+                            ctx.getSource().sendSuccess(TribeError.ARG_MISSING.getText(), false);
                             return 0;
                         }
                 );
 
-    }
-
-    public static int handleCreate(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
-        Player player = source.getSource().getPlayerOrException();
-        String name = StringArgumentType.getString(source, "name");
-
-        TribeErrorType response = TribesManager.createNewTribe(name, player);
-        if (response == TribeErrorType.SUCCESS){
-            source.getSource().sendSuccess(TribeSuccessType.MADE_TRIBE.getText(name), true);
-        } else {
-            source.getSource().sendSuccess(response.getText(), true);
-        }
-
-
-        return Command.SINGLE_SUCCESS;
     }
 }

@@ -1,5 +1,7 @@
 package io.github.lukegrahamlandry.tribes.network;
 
+import io.github.lukegrahamlandry.tribes.api.tribe.Member;
+import io.github.lukegrahamlandry.tribes.api.tribe.Relation;
 import io.github.lukegrahamlandry.tribes.client.gui.MyTribeScreen;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
@@ -13,13 +15,12 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 public class PacketOpenMyTribeGUI {
     private final String tribeName;
-    private final String rank;
-    private final String owner;
+    private final Member.Rank rank;
+    private final String leader;
     private final int members;
     private final int tier;
     private final List<String> goodTribes;
@@ -31,27 +32,27 @@ public class PacketOpenMyTribeGUI {
         this.badTribes = new ArrayList<>();
         if (tribe != null){
             this.tribeName = tribe.getName();
-            this.rank = tribe.getRankOf(player.getUUID().toString()).asString();
-            this.owner = player.getLevel().getPlayerByUUID(UUID.fromString(tribe.getOwner())).getScoreboardName();
-            this.members = tribe.getCount();
+            this.rank = tribe.getRankOf(player.getUUID());
+            this.leader = player.getLevel().getPlayerByUUID(tribe.getLeaderId()).getScoreboardName();
+            this.members = tribe.getMemberCount();
             this.tier = tribe.getTribeTier();
-            tribe.relationToOtherTribes.forEach((name, relation) -> {
-                if (relation == Tribe.Relation.ALLY) this.goodTribes.add(name);
-                if (relation == Tribe.Relation.ENEMY) this.badTribes.add(name);
+            tribe.getRelations().forEach((id, relation) -> {
+                if (relation.type() == Relation.Type.ALLY) this.goodTribes.add(TribesManager.getTribe(id).getName());
+                if (relation.type() == Relation.Type.ENEMY) this.badTribes.add(TribesManager.getTribe(id).getName());
             });
         } else {
             this.tribeName = "NOT IN TRIBE";
-            this.rank = "NONE";
-            this.owner = "NONE";
+            this.rank = Member.Rank.BYPASS;
+            this.leader = "NONE";
             this.members = 0;
             this.tier = 0;
         }
     }
 
-    public PacketOpenMyTribeGUI(String tribeName, String rank, String owner, int members, int tier, List<String> goodTribes, List<String> badTribes) {
+    public PacketOpenMyTribeGUI(String tribeName, Member.Rank rank, String leader, int members, int tier, List<String> goodTribes, List<String> badTribes) {
         this.tribeName = tribeName;
         this.rank = rank;
-        this.owner = owner;
+        this.leader = leader;
         this.members = members;
         this.tier = tier;
         this.goodTribes = goodTribes;
@@ -59,13 +60,13 @@ public class PacketOpenMyTribeGUI {
     }
 
     public static PacketOpenMyTribeGUI decode(FriendlyByteBuf buf) {
-        return new PacketOpenMyTribeGUI(buf.readUtf(32767), buf.readUtf(32767), buf.readUtf(32767), buf.readInt(), buf.readInt(), PacketUtil.readStringList(buf), PacketUtil.readStringList(buf));
+        return new PacketOpenMyTribeGUI(buf.readUtf(32767), buf.readEnum(Member.Rank.class), buf.readUtf(32767), buf.readInt(), buf.readInt(), PacketUtil.readStringList(buf), PacketUtil.readStringList(buf));
     }
 
     public static void encode(PacketOpenMyTribeGUI packet, FriendlyByteBuf buf) {
         buf.writeUtf(packet.tribeName);
-        buf.writeUtf(packet.rank);
-        buf.writeUtf(packet.owner);
+        buf.writeEnum(packet.rank);
+        buf.writeUtf(packet.leader);
         buf.writeInt(packet.members);
         buf.writeInt(packet.tier);
         PacketUtil.writeStringList(buf, packet.goodTribes);
@@ -79,7 +80,7 @@ public class PacketOpenMyTribeGUI {
 
     @OnlyIn(Dist.CLIENT)
     private static void doOpen(PacketOpenMyTribeGUI packet) {
-        Screen gui = new MyTribeScreen(packet.tribeName, packet.rank, packet.owner, packet.members, packet.tier, packet.goodTribes, packet.badTribes);
+        Screen gui = new MyTribeScreen(packet.tribeName, packet.rank, packet.leader, packet.members, packet.tier, packet.goodTribes, packet.badTribes);
         Minecraft.getInstance().setScreen(gui);
     }
 }

@@ -2,19 +2,13 @@ package io.github.lukegrahamlandry.tribes.client.tile;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Vector3f;
-import io.github.lukegrahamlandry.tribes.blocks.AlterBlock;
+import io.github.lukegrahamlandry.tribes.blocks.AltarBlock;
 import io.github.lukegrahamlandry.tribes.init.BannarInit;
-import io.github.lukegrahamlandry.tribes.tile.AltarTileEntity;
+import io.github.lukegrahamlandry.tribes.tile.AltarBlockEntity;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.model.geom.PartPose;
-import net.minecraft.client.model.geom.builders.CubeListBuilder;
-import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.geom.builders.MeshDefinition;
-import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Sheets;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -25,16 +19,16 @@ import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.entity.BannerPattern;
 import net.minecraft.core.Direction;
 
-import static io.github.lukegrahamlandry.tribes.blocks.AlterBlock.TYPE;
+import static io.github.lukegrahamlandry.tribes.blocks.AltarBlock.TYPE;
 
-public class AltarRenderer implements BlockEntityRenderer<AltarTileEntity> {
+public class AltarRenderer implements BlockEntityRenderer<AltarBlockEntity> {
     ModelPart model;
     public AltarRenderer(BlockEntityRendererProvider.Context provider) {
         ModelPart modelpart = provider.bakeLayer(ModelLayers.BANNER);
         this.model = modelpart.getChild("flag");
     }
 
-    public void render(AltarTileEntity tileEntityIn, float partialTicks, PoseStack matrixStackIn, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {
+    public void render(AltarBlockEntity tileEntityIn, float partialTicks, PoseStack matrixStackIn, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {
         BlockState state = tileEntityIn.getBlockState();
         if (state.getValue(TYPE) == ChestType.LEFT) return;
 
@@ -46,7 +40,7 @@ public class AltarRenderer implements BlockEntityRenderer<AltarTileEntity> {
         matrixStackIn.translate(0.5D, 1D, 0.5D);
 
         if (state.getValue(TYPE) == ChestType.RIGHT){
-            Direction side = AlterBlock.getDirectionToAttached(state);
+            Direction side = AltarBlock.getDirectionToAttached(state);
             matrixStackIn.translate(side.getStepX() * 0.5D, 0, side.getStepZ() * 0.5D);
         }
 

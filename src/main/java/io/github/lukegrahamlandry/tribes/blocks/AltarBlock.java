@@ -1,36 +1,40 @@
 package io.github.lukegrahamlandry.tribes.blocks;
 
-import io.github.lukegrahamlandry.tribes.tile.AltarTileEntity;
+import io.github.lukegrahamlandry.tribes.api.tribe.DeityInfo;
+import io.github.lukegrahamlandry.tribes.tile.AltarBlockEntity;
 import io.github.lukegrahamlandry.tribes.tribe_data.DeitiesManager;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
-import net.minecraft.world.level.block.*;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.ChestType;
-import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
-public class AlterBlock extends Block implements EntityBlock{
+public class AltarBlock extends Block implements EntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final EnumProperty<ChestType> TYPE = BlockStateProperties.CHEST_TYPE;
 
-    public AlterBlock(Block.Properties props) {
+    public AltarBlock(Block.Properties props) {
         super(props);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TYPE, ChestType.SINGLE));
     }
@@ -38,26 +42,23 @@ public class AlterBlock extends Block implements EntityBlock{
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new AltarTileEntity(pos, state);
-    }
-
-    public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
+        return new AltarBlockEntity(pos, state);
     }
 
     @Override
     public void setPlacedBy(Level worldIn, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-        super.setPlacedBy(worldIn, pos, state, placer, stack);
-        if (placer instanceof ServerPlayer){
-            Tribe tribe = TribesManager.getTribeOf(placer.getUUID());
-            if (tribe != null && tribe.deity != null){
-                DeitiesManager.DeityData deity = DeitiesManager.deities.get(tribe.deity);
-                AltarTileEntity tile = (AltarTileEntity) worldIn.getBlockEntity(pos);
-                tile.setBannerKey(deity.bannerKey);
-            }
+        if (placer instanceof ServerPlayer player) {
+            Optional.ofNullable(TribesManager.getTribeOf(player.getUUID())).flatMap(Tribe::getDeityInfo).map(DeityInfo::getName).ifPresent(deityName -> {
+                DeitiesManager.DeityData deity = DeitiesManager.deities.get(deityName);
+                if (worldIn.getBlockEntity(pos) instanceof AltarBlockEntity be) {
+                    be.setBannerKey(deity.bannerKey);
+                }
+            });
         }
     }
 
+    @Deprecated
+    @Override
     public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, LevelAccessor worldIn, BlockPos currentPos, BlockPos facingPos) {
         if (facingState.is(this) && facing.getAxis().isHorizontal()) {
             ChestType chesttype = facingState.getValue(TYPE);
@@ -74,6 +75,7 @@ public class AlterBlock extends Block implements EntityBlock{
     // todo: export different ones for each facing direction. need the bbmodel file
     protected static final VoxelShape SHAPE = Block.box(1.0D, 0.0D, 0.0D, 16.0D, 10.0D, 16.0D);
 
+    @Override
     public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
