@@ -97,22 +97,20 @@ public class TribesManager {
         return null;
     }
 
-    public static String writeToString() {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    public static JsonArray toJson() {
         JsonArray tribeListJson = new JsonArray();
         for (Tribe tribe : getTribes()){
             tribeListJson.add(tribe.write());
         }
 
-        return gson.toJson(tribeListJson); //tribeListJson.toString();
+        return tribeListJson;
     }
 
-    public static void readFromString(String data) {
-        JsonArray obj = new JsonParser().parse(data).getAsJsonArray();
+    public static void fromJson(JsonArray obj) {
 
         tribes.clear();
-        for (JsonElement e : obj){
-            Tribe t = Tribe.fromJson(e.toString());
+        for (JsonElement e : obj) {
+            Tribe t = Tribe.fromJson(e.getAsJsonObject());
             addNewTribe(t);
         }
     }

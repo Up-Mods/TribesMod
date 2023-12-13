@@ -15,64 +15,77 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class TickHandler {
+
+    private static boolean check_scheduled = true;
+
     private static int timer = 0;
     static int ONE_MINUTE = 60 * 20;
+
     @SubscribeEvent
-    public static void updateLandOwnerAndCompassAndEffects(TickEvent.PlayerTickEvent event){
-        if (event.player.getCommandSenderWorld().isClientSide() || timer % 10 != 0) return;
+    public static void updateLandOwnerAndCompassAndEffects(TickEvent.PlayerTickEvent event) {
+        if (event.side.isClient() || event.phase != TickEvent.Phase.START) return;
 
-        // land owner display
-        NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) event.player),
-                new LandOwnerPacket(event.player.getUUID(), LandClaimHelper.getOwnerDisplayFor(event.player), LandClaimHelper.canAccessLandAt(event.player, event.player.blockPosition())));
+        if (event.player instanceof ServerPlayer player && player.tickCount % 20 == 0) {
 
+            // land owner display
+            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
+                    new LandOwnerPacket(player.getUUID(), LandClaimHelper.getOwnerDisplayFor(player), LandClaimHelper.canAccessLandAt(player, player.blockPosition())));
 
-        // tribe compass direction
-        ItemStack stack = event.player.getItemInHand(InteractionHand.MAIN_HAND);
-        if (stack.getItem() instanceof TribeCompass){
-            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) event.player),
-                    new CompassChunkPacket(event.player.getUUID(), TribeCompass.caclulateTargetPosition((ServerPlayer) event.player, stack)));
-        }
+            // tribe compass direction
+            ItemStack stack = player.getItemInHand(InteractionHand.MAIN_HAND);
+            if (stack.getItem() instanceof TribeCompass) {
+                NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
+                        new CompassChunkPacket(player.getUUID(), TribeCompass.caclulateTargetPosition(player, stack)));
+            }
 
-
-        // apply tribe effects
-        Tribe tribe = TribesManager.getTribeOf(event.player.getUUID());
-        if (tribe != null && timer % 80 == 0){  // without the modulo check the effects dont tick properly. ie wither never happens, regen always happens
-            tribe.effects.forEach((effect, level) -> {
-                event.player.addEffect(new MobEffectInstance(effect, 15*20, level-1));
-            });
-        }
-
-        if (tribe == null && TribesConfig.isTribeRequired()){
-            // no tribe and force tribes
-            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) event.player), new PacketOpenJoinGUI((ServerPlayer) event.player));
+            // apply tribe effects
+            Tribe tribe = TribesManager.getTribeOf(player.getUUID());
+            if (tribe != null) {
+                tribe.effects.forEach((effect, level) -> player.addEffect(new MobEffectInstance(effect, 5 * 20, level - 1)));
+            } else if (TribesConfig.isTribeRequired()) {
+                NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new PacketOpenJoinGUI(player));
+            }
         }
     }
 
     @SubscribeEvent
-    public static void tickDeathPunishments(TickEvent.WorldTickEvent event){
-        if (event.world.isClientSide()) return;
+    public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (TribesManager.getTribeOf(event.getPlayer().getUUID()) == null && TribesConfig.isTribeRequired() && event.getPlayer() instanceof ServerPlayer player) {
+            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new PacketOpenJoinGUI(player));
+        }
+    }
+
+    @SubscribeEvent
+    public static void tickDeathPunishments(TickEvent.WorldTickEvent event) {
+        if (event.side.isClient() || event.phase != TickEvent.Phase.START) return;
         timer++;
 
-        if (timer >= ONE_MINUTE){
-            timer = 0;
-            for (Tribe tribe : TribesManager.getTribes()){
-                if (tribe.claimDisableTime > 0){
-                    tribe.claimDisableTime -= 1;
-                    if (tribe.claimDisableTime < 0){
+        if (timer >= ONE_MINUTE) {
+            for (Tribe tribe : TribesManager.getTribes()) {
+                if (tribe.claimDisableTime > 0) {
+                    tribe.claimDisableTime--;
+                    if (tribe.claimDisableTime == 0) {
                         tribe.deathWasPVP = false;
                         tribe.deathIndex = 0;
                     }
                 }
             }
 
-            // remove inactive people from thier tribes
+            check_scheduled = true;
+            timer = 0;
+        }
+
+        if (check_scheduled && event.haveTime()) {
+            // remove inactive people from their tribes
             RemoveInactives.check();
+            check_scheduled = false;
         }
     }
 }

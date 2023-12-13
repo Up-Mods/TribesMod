@@ -52,10 +52,9 @@ public class DeitiesManager {
 
     public static HashMap<String, DeityData> deities = new HashMap();
 
-    public static void readFromString(String data){
+    public static void fromJson(JsonArray allDeitiesJson){
         deities.clear();
 
-        JsonArray allDeitiesJson = new JsonParser().parse(data).getAsJsonArray();
         for (JsonElement e : allDeitiesJson){
             JsonObject deityJson = e.getAsJsonObject();
             String key = deityJson.get("key").getAsString();

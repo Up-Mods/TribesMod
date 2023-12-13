@@ -37,7 +37,7 @@ public class TribesConfig {
     private static ForgeConfigSpec.ConfigValue<List<? extends String>> admins;
 
     private static ForgeConfigSpec.ConfigValue<List<? extends String>> ignoredEffects;
-    private static ForgeConfigSpec.IntValue removeInactiveAfterDays;
+    public static ForgeConfigSpec.IntValue removeInactiveAfterDays;
 
     private static ForgeConfigSpec.ConfigValue<String> landOwnerDisplayPosition;
 
@@ -223,18 +223,13 @@ public class TribesConfig {
         return adminIDs.contains(id);
     }
 
-    public static long betweenDeityChangeMillis(){
+    public static long betweenDeityChangeMillis() {
         return daysBetweenDeityChange.get() * 24 * 60 * 60 * 1000;
     }
 
     public static long betweenEffectsChangeMillis(){
         return daysBetweenEffectsChange.get() * 24 * 60 * 60 * 1000;
     }
-
-    public static long kickInactiveAfterMillis(){
-        return removeInactiveAfterDays.get() * 24 * 60 * 60 * 1000;
-    }
-
 
     // CLIENT
 

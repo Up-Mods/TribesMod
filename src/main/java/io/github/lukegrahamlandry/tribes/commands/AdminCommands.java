@@ -4,11 +4,16 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.tribe_data.*;
+import net.minecraft.commands.CommandRuntimeException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
+
+import java.io.IOException;
 
 public class AdminCommands {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
@@ -71,14 +76,24 @@ public class AdminCommands {
     }
 
     public static int saveData(CommandContext<CommandSourceStack> source) {
-        SaveHandler.save(SaveHandler.tribeDataLocation);
-        source.getSource().sendSuccess(new TextComponent("tribe data has been saved in " + SaveHandler.tribeDataLocation), true);
+        try {
+            SaveHandler.save(source.getSource().getServer());
+        } catch (IOException e) {
+            TribesMain.LOGGER.error("unable to save tribe data", e);
+            throw new CommandRuntimeException(new TextComponent("unable to save tribe data, check log for details!"));
+        }
+        source.getSource().sendSuccess(new TextComponent("tribe data has been saved!"), true);
         return Command.SINGLE_SUCCESS;
     }
 
     public static int loadData(CommandContext<CommandSourceStack> source) {
-        SaveHandler.load(SaveHandler.tribeDataLocation);
-        source.getSource().sendSuccess(new TextComponent("tribe data has been loaded from " + SaveHandler.tribeDataLocation), true);
+        try {
+            SaveHandler.load(source.getSource().getServer());
+        } catch (IOException e) {
+            TribesMain.LOGGER.error("unable to reload tribe data", e);
+            throw new CommandRuntimeException(new TextComponent("unable to load tribe data, check log for details!"));
+        }
+        source.getSource().sendSuccess(new TextComponent("tribe data has been reloaded!"), true);
         return Command.SINGLE_SUCCESS;
     }
 

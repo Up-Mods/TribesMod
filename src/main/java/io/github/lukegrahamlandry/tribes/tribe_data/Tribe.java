@@ -266,8 +266,7 @@ public class Tribe {
         return obj;
     }
 
-    static Tribe fromJson(String str) {
-        JsonObject obj = new JsonParser().parse(str).getAsJsonObject();
+    static Tribe fromJson(JsonObject obj) {
 
         String name = obj.get("name").getAsString();
         String owner = obj.get("owner").getAsString();

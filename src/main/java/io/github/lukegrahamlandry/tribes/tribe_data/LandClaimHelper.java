@@ -14,10 +14,10 @@ public class LandClaimHelper {
     public static HashMap<Hemi, List<Tribe>> hemispheres = new HashMap<>();
 
     // important to call this whenever tribes load
-    public static void setup(){
+    public static void setup() {
         hemispheres.put(Hemi.POSITIVE, new ArrayList<>());
         hemispheres.put(Hemi.NEGATIVE, new ArrayList<>());
-        hemispheres.put(Hemi.NONE, new ArrayList<>());  // never actaully used but would crash without unless add a check
+        hemispheres.put(Hemi.NONE, List.of());  // never actaully used but would crash without unless add a check
 
         for (Tribe tribe : TribesManager.getTribes()){
             for (Long chunk : tribe.getClaimedChunks()){
