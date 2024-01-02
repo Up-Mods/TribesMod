@@ -3,7 +3,6 @@ package io.github.lukegrahamlandry.tribes.init;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.commands.*;
 import io.github.lukegrahamlandry.tribes.network.PacketOpenMyTribeGUI;
 import net.minecraft.commands.CommandSourceStack;
@@ -48,8 +47,6 @@ public class CommandInit {
                 .executes(CommandInit::openMyTribeGUI));
 
         event.getDispatcher().register(Commands.literal("tribes").executes(CommandInit::openMyTribeGUI));
-
-        TribesMain.LOGGER.debug("Tribe commands registered");
     }
 
     public static int openMyTribeGUI(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {

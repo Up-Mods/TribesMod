@@ -57,7 +57,7 @@ public class AutobanHandler {
 
         int numDeathsWithinThreshold = recentDeaths.size();
         if (numDeathsWithinThreshold >= tribe.getAutobanInfo().getDeathsThreshold()) {
-            TribesMain.LOGGER.debug(player.getUUID() + " has died " + numDeathsWithinThreshold + " within their tribe's autoban threshold! banning...");
+            TribesMain.LOGGER.info("{} has died {} times within their tribe's autoban threshold! banning...", player.getGameProfile().getName(), numDeathsWithinThreshold);
             // todo; specify that its because they died too often
             TribeHelper.broadcastMessageNoCause(tribe, TribeSuccessType.BAN_FOR_DEATHS, player.getServer(), player);
             var fakePlayer = FakePlayerFactory.get(player.getLevel(), FAKE_PLAYER_PROFILE);

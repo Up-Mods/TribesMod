@@ -7,7 +7,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
@@ -50,8 +49,6 @@ public class TribeArgumentType implements ArgumentType<Tribe> {
         stringreader.setCursor(stringreader.getTotalLength());
 
         stringreader.skipWhitespace();
-
-        TribesMain.LOGGER.debug(s);
 
         for (Tribe tribe : TribesManager.getTribes()) {
             if (tribe.getName().startsWith(s)) builder.suggest(tribe.getName());

@@ -5,7 +5,6 @@ import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.tribe_data.DeitiesManager;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import net.minecraft.commands.CommandSourceStack;
@@ -54,8 +53,6 @@ public class DeityArgumentType implements ArgumentType<DeitiesManager.DeityData>
         stringreader.setCursor(stringreader.getTotalLength());
 
         stringreader.skipWhitespace();
-
-        TribesMain.LOGGER.debug(s);
 
         for (String key : DeitiesManager.deities.keySet()) {
             String display = DeitiesManager.deities.get(key).displayName;

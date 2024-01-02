@@ -2,7 +2,6 @@ package io.github.lukegrahamlandry.tribes.client.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.api.tribe.EffectsInfo;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
@@ -74,9 +73,9 @@ public class TribeEffectScreen extends TribeScreen {
         addRenderableWidgets();
     }
 
-    public void addRenderableWidgets(){
-        this.backButton = this.addRenderableWidget(new Button(this.guiLeft + (this.xSize - 11), (this.ySize/2 - 11) + 30, 20, 20, new TextComponent("<"), (p_214318_1_) -> {
-            if (this.backButton.active){
+    public void addRenderableWidgets() {
+        this.backButton = this.addRenderableWidget(new Button(this.guiLeft + (this.xSize - 11), (this.ySize / 2 - 11) + 30, 20, 20, new TextComponent("<"), (p_214318_1_) -> {
+            if (this.backButton.active) {
                 this.page--;
 
                 TribeEffectScreen.this.clearWidgets();
@@ -85,8 +84,8 @@ public class TribeEffectScreen extends TribeScreen {
             }
         }));
         this.backButton.active = this.page > 0;
-        this.nextButton = this.addRenderableWidget(new Button(this.guiLeft + (this.xSize - 11), (this.ySize/2 - 11) + 60, 20, 20, new TextComponent(">"), (p_214318_1_) -> {
-            if (this.nextButton.active){
+        this.nextButton = this.addRenderableWidget(new Button(this.guiLeft + (this.xSize - 11), (this.ySize / 2 - 11) + 60, 20, 20, new TextComponent(">"), (p_214318_1_) -> {
+            if (this.nextButton.active) {
                 this.page++;
 
                 TribeEffectScreen.this.clearWidgets();
@@ -98,61 +97,60 @@ public class TribeEffectScreen extends TribeScreen {
         this.nextButton.active = shown < posEffects.size() || shown < negEffects.size();
 
 
-
         // Declare confirm button
-        this.confirmButton = this.addRenderableWidget(new ConfirmButton(this,this.guiLeft + (this.xSize - 11), (this.ySize/2 - 11), this.ySize));
+        this.confirmButton = this.addRenderableWidget(new ConfirmButton(this, this.guiLeft + (this.xSize - 11), (this.ySize / 2 - 11), this.ySize));
 
         int shift = this.page * EFFECTS_PER_PAGE;
-        int i=0;
-        int k=0;
+        int i = 0;
+        int k = 0;
         // Iteration through effects to create three buttons for three tiers of each effect
 
-        for (int e=0;e<EFFECTS_PER_PAGE;e++){
+        for (int e = 0; e < EFFECTS_PER_PAGE; e++) {
             int index = shift + e;
             if (index >= posEffects.size()) break;
             MobEffect effect = posEffects.get(index);
 
             EffectButton tribeeffect$effectbutton;
-            i=(k>=154) ? 82 : i;
-            k=(k>=154) ? 0 : k;
-            for(int j=1; j<=3;j++){
+            i = (k >= 154) ? 82 : i;
+            k = (k >= 154) ? 0 : k;
+            for (int j = 1; j <= 3; j++) {
                 tribeeffect$effectbutton = new EffectButton(this, this.guiLeft + 11 + i, this.guiTop + 36 + k, this.ySize, effect, true, j);
                 this.addRenderableWidget(tribeeffect$effectbutton);
                 // Is the effect selected already?
-                if(selGoodEffects.containsKey(effect) && selGoodEffects.get(effect)==j){
+                if (selGoodEffects.containsKey(effect) && selGoodEffects.get(effect) == j) {
                     tribeeffect$effectbutton.setSelected(true);
-                }else {
+                } else {
                     tribeeffect$effectbutton.setSelected(false);
                 }
-                i+=22;
+                i += 22;
             }
-            i-=22*3;
-            k+=22;
+            i -= 22 * 3;
+            k += 22;
 
         }
 
-        i=0;
-        k=0;
-        for (int e=0;e<EFFECTS_PER_PAGE;e++){
+        i = 0;
+        k = 0;
+        for (int e = 0; e < EFFECTS_PER_PAGE; e++) {
             int index = shift + e;
             if (index >= negEffects.size()) break;
             MobEffect effect = negEffects.get(index);
 
             EffectButton tribeeffect$effectbutton;
-            i=(k>=154) ? 82 : i;
-            k=(k>=154) ? 0 : k;
-            for(int j=1; j<=3;j++){
+            i = (k >= 154) ? 82 : i;
+            k = (k >= 154) ? 0 : k;
+            for (int j = 1; j <= 3; j++) {
                 tribeeffect$effectbutton = new EffectButton(this, this.guiLeft + this.xSize + 16 + i, this.guiTop + 36 + k, ySize, effect, false, j);
                 this.addRenderableWidget(tribeeffect$effectbutton);
-                if(selBadEffects.containsKey(effect) && selBadEffects.get(effect)==j){
+                if (selBadEffects.containsKey(effect) && selBadEffects.get(effect) == j) {
                     tribeeffect$effectbutton.setSelected(true);
-                }else {
+                } else {
                     tribeeffect$effectbutton.setSelected(false);
                 }
-                i+=22;
+                i += 22;
             }
-            i-=22*3;
-            k+=22;
+            i -= 22 * 3;
+            k += 22;
         }
     }
 
@@ -160,40 +158,40 @@ public class TribeEffectScreen extends TribeScreen {
     public void render(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks) {
         super.render(matrixStack, mouseX, mouseY, partialTicks);
 
-        this.font.draw(matrixStack, "Benefits: " + numSelectedGood+"/"+maxGoodEffects, this.guiLeft + 15, this.guiTop + 20, 0x5d5d5d);
-        this.font.draw(matrixStack, "Drawbacks: " + numSelectedBad+"/"+maxBadEffects, this.guiLeft + 20 + xSize, this.guiTop + 20, 0x5d5d5d);
+        this.font.draw(matrixStack, "Benefits: " + numSelectedGood + "/" + maxGoodEffects, this.guiLeft + 15, this.guiTop + 20, 0x5d5d5d);
+        this.font.draw(matrixStack, "Drawbacks: " + numSelectedBad + "/" + maxBadEffects, this.guiLeft + 20 + xSize, this.guiTop + 20, 0x5d5d5d);
     }
 
     // Add effect to selected list
-    private void addEffect(MobEffect effect, int amplifier, boolean isGood){
-        if(isGood){
+    private void addEffect(MobEffect effect, int amplifier, boolean isGood) {
+        if (isGood) {
             selGoodEffects.put(effect, amplifier);
             numSelectedGood += amplifier;
-        }else{
+        } else {
             selBadEffects.put(effect, amplifier);
             numSelectedBad += amplifier;
         }
     }
 
     // Remove effect from selected list
-    private void removeEffect(MobEffect effect, int amplifier, boolean isGood){
-        if(isGood){
+    private void removeEffect(MobEffect effect, int amplifier, boolean isGood) {
+        if (isGood) {
             selGoodEffects.remove(effect, amplifier);
             numSelectedGood -= amplifier;
-        }else{
+        } else {
             selBadEffects.remove(effect, amplifier);
             numSelectedBad -= amplifier;
         }
     }
 
     private void calcNumSelected() {
-        numSelectedBad=0;
-        numSelectedGood=0;
-        for(MobEffect effect : selGoodEffects.keySet()){
-            numSelectedGood+=selGoodEffects.get(effect);
+        numSelectedBad = 0;
+        numSelectedGood = 0;
+        for (MobEffect effect : selGoodEffects.keySet()) {
+            numSelectedGood += selGoodEffects.get(effect);
         }
-        for(MobEffect effect : selBadEffects.keySet()){
-            numSelectedBad+=selBadEffects.get(effect);
+        for (MobEffect effect : selBadEffects.keySet()) {
+            numSelectedBad += selBadEffects.get(effect);
         }
     }
 
@@ -201,13 +199,14 @@ public class TribeEffectScreen extends TribeScreen {
     @OnlyIn(Dist.CLIENT)
     class ConfirmButton extends GuiButton.SpriteButton {
         TribeScreen screen;
-        public ConfirmButton(TribeScreen screen,int x, int y, int ySizeIn) {
+
+        public ConfirmButton(TribeScreen screen, int x, int y, int ySizeIn) {
             super(screen, x, y, 90, 220, ySizeIn);
             this.screen = screen;
         }
 
         public void onPress() {
-            if (this.active){
+            if (this.active) {
                 NetworkHandler.INSTANCE.sendToServer(new SaveEffectsPacket(selGoodEffects, selBadEffects));
                 selBadEffects.clear();
                 selGoodEffects.clear();
@@ -250,9 +249,9 @@ public class TribeEffectScreen extends TribeScreen {
             TranslatableComponent iformattabletextcomponent = new TranslatableComponent(effect.getDescriptionId());
             if (this.getAmplifier() == 1) {
                 iformattabletextcomponent.append(" I");
-            }else if (this.getAmplifier() == 2) {
+            } else if (this.getAmplifier() == 2) {
                 iformattabletextcomponent.append(" II");
-            }else if (this.getAmplifier() == 3) {
+            } else if (this.getAmplifier() == 3) {
                 iformattabletextcomponent.append(" III");
             }
 
@@ -260,28 +259,27 @@ public class TribeEffectScreen extends TribeScreen {
         }
 
         public void onPress() {
-            TribesMain.LOGGER.debug(effect + " " + amplifier);
             if (!this.isSelected()) {
                 if (this.isGood) {
                     // Are the maximum number of effects selected?
-                    if(TribeEffectScreen.this.selGoodEffects.size() < TribeEffectScreen.this.maxGoodEffects && (numSelectedGood + amplifier <= maxGoodEffects)){
+                    if (TribeEffectScreen.this.selGoodEffects.size() < TribeEffectScreen.this.maxGoodEffects && (numSelectedGood + amplifier <= maxGoodEffects)) {
                         TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
                     }
                     // Are you selecting a different level of a selected effect?
-                    if(TribeEffectScreen.this.selGoodEffects.containsKey(effect) && (numSelectedGood + amplifier <= maxGoodEffects)){
+                    if (TribeEffectScreen.this.selGoodEffects.containsKey(effect) && (numSelectedGood + amplifier <= maxGoodEffects)) {
                         TribeEffectScreen.this.removeEffect(effect, TribeEffectScreen.this.selGoodEffects.get(effect), isGood);
                         TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
                     }
-                } else if(!this.isGood){
-                    if(TribeEffectScreen.this.selBadEffects.size() < TribeEffectScreen.this.maxBadEffects && (numSelectedBad + amplifier <= maxBadEffects)) {
+                } else if (!this.isGood) {
+                    if (TribeEffectScreen.this.selBadEffects.size() < TribeEffectScreen.this.maxBadEffects && (numSelectedBad + amplifier <= maxBadEffects)) {
                         TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
                     }
-                    if(TribeEffectScreen.this.selBadEffects.containsKey(effect) && (numSelectedBad + amplifier <= maxBadEffects)){
+                    if (TribeEffectScreen.this.selBadEffects.containsKey(effect) && (numSelectedBad + amplifier <= maxBadEffects)) {
                         TribeEffectScreen.this.removeEffect(effect, TribeEffectScreen.this.selBadEffects.get(effect), isGood);
                         TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
                     }
                 }
-            }else if(this.isSelected()){
+            } else if (this.isSelected()) {
                 TribeEffectScreen.this.removeEffect(effect, amplifier, isGood);
             }
             TribeEffectScreen.this.clearWidgets();
@@ -293,12 +291,12 @@ public class TribeEffectScreen extends TribeScreen {
             screen.renderTooltip(matrixStack, getEffectName(this.effect), mouseX, mouseY);
         }
 
-        public int getAmplifier(){
+        public int getAmplifier() {
             return amplifier;
         }
 
         protected void renderIcon(PoseStack matrixStack) {
-            TribeEffectScreen.this.font.draw(matrixStack, String.valueOf(this.getAmplifier()), (float)(this.x+2), (float)(this.y+2), 0xffffff);
+            TribeEffectScreen.this.font.draw(matrixStack, String.valueOf(this.getAmplifier()), (float) (this.x + 2), (float) (this.y + 2), 0xffffff);
 
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);

@@ -1,6 +1,7 @@
 package io.github.lukegrahamlandry.tribes.events;
 
 import com.google.gson.*;
+import com.mojang.authlib.GameProfile;
 import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
@@ -46,7 +47,8 @@ public class RemoveInactives {
             Tribe tribe = TribesManager.getTribeOf(uuid);
             if (tribe != null) {
                 if (loginTime.isBefore(threshold)) {
-                    TribesMain.LOGGER.debug("remove inactive member {} from tribe {} (last seen: {})", uuid, tribe.getName(), loginTime);
+                    var username = server.getProfileCache().get(uuid).map(GameProfile::getName).orElseGet(uuid::toString);
+                    TribesMain.LOGGER.debug("removing inactive member {} from tribe {} (last seen: {})", username, tribe.getName(), loginTime);
                     // todo: message to everyone that the player has been kicked
                     // todo: message to the player when they join again
                     tribe.removeMember(uuid);

@@ -27,7 +27,7 @@ public class Config {
     }
 
     //Loading function for config files
-    public static void loadConfig(ForgeConfigSpec config, String path){
+    public static void loadConfig(ForgeConfigSpec config, String path) {
         TribesMain.LOGGER.info("Loading config: " + path);
         final CommentedFileConfig file = CommentedFileConfig.builder(new File(path)).sync().autosave().writingMode(WritingMode.REPLACE).build();
         TribesMain.LOGGER.info("Built config: " + path);
