@@ -37,7 +37,7 @@ public class TribesMain {
         ItemInit.ITEMS.register(eventBus);
         BlockInit.BLOCKS.register(eventBus);
         TileEntityInit.TILE_ENTITY_TYPES.register(eventBus);
-        BannarInit.setup();
+        BannerInit.setup();
 
         ArgumentTypes.register("tribe", TribeArgumentType.class, new EmptyArgumentSerializer<>(TribeArgumentType::tribe));
         ArgumentTypes.register("deity", DeityArgumentType.class, new EmptyArgumentSerializer<>(DeityArgumentType::tribe));

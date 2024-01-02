@@ -8,7 +8,7 @@ import io.github.lukegrahamlandry.tribes.api.tribe.DeityInfo;
 import io.github.lukegrahamlandry.tribes.api.tribe.Member;
 import io.github.lukegrahamlandry.tribes.commands.util.DeityArgumentType;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
-import io.github.lukegrahamlandry.tribes.init.BannarInit;
+import io.github.lukegrahamlandry.tribes.init.BannerInit;
 import io.github.lukegrahamlandry.tribes.tribe_data.*;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -63,7 +63,7 @@ public class DeityCommands {
             return 0;
         }
         Instant lastChange = tribe.getDeityInfo().map(DeityInfo::getLastChanged).orElse(Instant.MIN);
-        if (lastChange.isBefore(Instant.now().minus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS))) {
+        if (lastChange.isAfter(Instant.now().minus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS))) {
             long hoursToWait = Instant.now().until(lastChange.plus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS), ChronoUnit.HOURS);
             source.getSource().sendFailure(TribeError.getWaitText(hoursToWait));
         } else {
@@ -127,7 +127,7 @@ public class DeityCommands {
         DeitiesManager.DeityData data = DeitiesManager.deities.get(deityName);
 
         // dont actually need the BannerPattern here, just hashname
-        BannerPattern bannerpattern = BannarInit.get(data.bannerKey);
+        BannerPattern bannerpattern = BannerInit.get(data.bannerKey);
         DyeColor dyecolor = DyeColor.WHITE;
         CompoundTag compoundnbt = banner.getOrCreateTagElement("BlockEntityTag");
         ListTag listnbt = compoundnbt.getList("Patterns", Tag.TAG_COMPOUND);

@@ -21,7 +21,7 @@ public class ClientEventHandler {
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
         ItemProperties.register(ItemInit.TRIBE_COMPASS.get(), new ResourceLocation("angle"), TribeCompass::getAngle);
-        ItemBlockRenderTypes.setRenderLayer(BlockInit.ALTER.get(), RenderType.cutout());
+        ItemBlockRenderTypes.setRenderLayer(BlockInit.ALTAR.get(), RenderType.cutout());
 
         BlockEntityRenderers.register(TileEntityInit.ALTAR.get(), AltarRenderer::new);
     }

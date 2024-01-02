@@ -6,7 +6,7 @@
     "book author": "The Tribes Dev",
     "label": "God",
     "enabled": false,
-    "banner": "book",
+    "banner": "tribes:book",
     "domains": [
       "Examples",
       "Mistakes",
@@ -20,7 +20,7 @@
     "book author": "Father Cygnus",
     "label": "Goddess",
     "enabled": true,
-    "banner": "faenen",
+    "banner": "tribes:faenen",
     "domains": [
       "pacifism",
       "harmony",
@@ -34,7 +34,7 @@
     "book author": "Amethyst Nightshade",
     "label": "Goddess",
     "enabled": true,
-    "banner": "skribbit",
+    "banner": "tribes:skribbit",
     "domains": [
       "power",
       "manipulation",
@@ -48,7 +48,7 @@
     "book author": "Paul Crockett",
     "label": "God",
     "enabled": true,
-    "banner": "pendeen",
+    "banner": "tribes:pendeen",
     "domains": [
       "uncertainty",
       "wisdom",
@@ -61,7 +61,7 @@
     "book title": "The Seven Commandments",
     "book author": "Julius",
     "label": "God",
-    "banner": "julius",
+    "banner": "tribes:julius",
     "enabled": true,
     "domains": [
       "order",
@@ -75,7 +75,7 @@
     "book title": "The Rules of Acquirement",
     "book author": "Grand Magus Gaunt",
     "label": "God",
-    "banner": "dollar",
+    "banner": "tribes:dollar",
     "enabled": true,
     "domains": [
       "luck",
@@ -89,7 +89,7 @@
     "book title": "Worldly Pleasures",
     "book author": "An unattributed Bishop of Eselia",
     "label": "Goddess",
-    "banner": "eselia",
+    "banner": "tribes:eselia",
     "enabled": true,
     "domains": [
       "pleasure",
@@ -104,7 +104,7 @@
     "book author": "Hakurei Reimu",
     "label": "Goddess",
     "enabled": true,
-    "banner": "izanagi",
+    "banner": "tribes:izanagi",
     "domains": [
       "justice",
       "courage",
@@ -118,7 +118,7 @@
     "book author": "Great Dragon Varka",
     "label": "God",
     "enabled": true,
-    "banner": "efba",
+    "banner": "tribes:efba",
     "domains": [
       "the elements",
       "animals",
@@ -131,7 +131,7 @@
     "book title": "The Aqua Order's Credo",
     "book author": "Aqua",
     "label": "Goddess",
-    "banner": "aqua",
+    "banner": "tribes:aqua",
     "enabled": true,
     "domains": [
       "misfortune",
@@ -145,7 +145,7 @@
     "book title": "description",
     "book author": "me",
     "label": "Unknown being",
-    "banner": "ikea",
+    "banner": "tribes:ikea",
     "enabled": true,
     "domains": [
       "atheists",
