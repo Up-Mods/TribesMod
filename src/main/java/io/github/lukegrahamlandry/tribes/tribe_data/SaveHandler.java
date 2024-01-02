@@ -13,8 +13,11 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 
-import java.io.*;
-import java.nio.file.*;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
@@ -37,7 +40,7 @@ public class SaveHandler {
     }
 
     @SubscribeEvent
-    public static void doSave(ServerStoppingEvent event){
+    public static void doSave(ServerStoppingEvent event) {
         try {
             save(event.getServer());
         } catch (IOException e) {
@@ -104,21 +107,19 @@ public class SaveHandler {
     }
 
     private static void createDefaultDeityFiles(Path deityLocation) throws IOException {
-        Files.createDirectories(deityLocation);
-
         var srcPath = ModList.get().getModFileById(TribesMain.MOD_ID).getFile().findResource("/deities");
         Files.walkFileTree(srcPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 var relative = srcPath.relativize(file);
-                Files.copy(file, deityLocation.resolve(relative));
-                return FileVisitResult.CONTINUE;
-            }
+                var filePath = deityLocation.resolve(relative.toString());
 
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                var relative = srcPath.relativize(dir);
-                Files.createDirectories(deityLocation.resolve(relative));
+                var parent = filePath.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+
+                Files.copy(file, filePath);
                 return FileVisitResult.CONTINUE;
             }
         });
