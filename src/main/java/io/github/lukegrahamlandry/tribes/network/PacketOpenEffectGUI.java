@@ -38,15 +38,15 @@ public class PacketOpenEffectGUI {
     }
 
     public static PacketOpenEffectGUI decode(FriendlyByteBuf buf) {
-        int goodNum = buf.readInt();
-        int badNum = buf.readInt();
+        int goodNum = buf.readVarInt();
+        int badNum = buf.readVarInt();
 
         var lastChanged = Instant.ofEpochSecond(buf.readLong());
         int size = buf.readVarInt();
         List<TribeEffect> effectList = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             int level = buf.readVarInt();
-            MobEffect effect = buf.readRegistryIdSafe(MobEffect.class);
+            MobEffect effect = buf.readRegistryId();
             effectList.add(new TribeEffect(effect, level));
         }
 
@@ -57,7 +57,7 @@ public class PacketOpenEffectGUI {
         buf.writeVarInt(packet.numGood);
         buf.writeVarInt(packet.numBad);
 
-        packet.effects.getLastChanged().ifPresentOrElse((time) -> buf.writeLong(time.getEpochSecond()), () -> buf.writeLong(0));
+        buf.writeLong(packet.effects.getLastChanged().orElse(Instant.EPOCH).getEpochSecond());
 
         buf.writeVarInt(packet.effects.getEffects().size());
         packet.effects.getEffects().forEach((tribeEffect) -> {
@@ -73,8 +73,7 @@ public class PacketOpenEffectGUI {
 
 
     @OnlyIn(Dist.CLIENT)
-    private static void doOpen(PacketOpenEffectGUI packet){
-        Screen gui = new TribeEffectScreen(packet.numGood, packet.numBad, packet.effects);
-        Minecraft.getInstance().setScreen(gui);
+    private static void doOpen(PacketOpenEffectGUI packet) {
+        Minecraft.getInstance().setScreen(new TribeEffectScreen(packet.numGood, packet.numBad, packet.effects));
     }
 }
