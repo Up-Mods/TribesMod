@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.lukegrahamlandry.tribes.api.tribe.EffectsInfo;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
+import io.github.lukegrahamlandry.tribes.init.TribesMobEffectTags;
 import io.github.lukegrahamlandry.tribes.network.SaveEffectsPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -18,10 +19,9 @@ import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TribeEffectScreen extends TribeScreen {
     // Confirmation button
@@ -187,12 +187,22 @@ public class TribeEffectScreen extends TribeScreen {
     private void calcNumSelected() {
         numSelectedBad = 0;
         numSelectedGood = 0;
-        for (MobEffect effect : selGoodEffects.keySet()) {
-            numSelectedGood += selGoodEffects.get(effect);
-        }
-        for (MobEffect effect : selBadEffects.keySet()) {
-            numSelectedBad += selBadEffects.get(effect);
-        }
+
+        Set<MobEffect> seen = new HashSet<>();
+        var singleLevelEffects = ForgeRegistries.MOB_EFFECTS.tags().getTag(TribesMobEffectTags.SINGLE_LEVEL_EFFECTS);
+
+        selGoodEffects.forEach((effect, integer) -> {
+            if (!seen.contains(effect) || !singleLevelEffects.contains(effect)) {
+                numSelectedGood += integer;
+                seen.add(effect);
+            }
+        });
+        selBadEffects.forEach((effect, integer) -> {
+            if (!seen.contains(effect) || !singleLevelEffects.contains(effect)) {
+                numSelectedBad += integer;
+                seen.add(effect);
+            }
+        });
     }
 
     // Confirmation Button(Check Button)
@@ -234,12 +244,12 @@ public class TribeEffectScreen extends TribeScreen {
         private final Component effectName;
         private final int amplifier;
 
-        public EffectButton(TribeScreen screen, int x, int y, int ySizeIn, MobEffect p_i50827_4_, boolean isGoodIn, int amplifierIn) {
+        public EffectButton(TribeScreen screen, int x, int y, int ySizeIn, MobEffect effect, boolean isGoodIn, int amplifierIn) {
             super(screen, x, y, ySizeIn);
-            this.effect = p_i50827_4_;
+            this.effect = effect;
             this.isGood = isGoodIn;
-            this.effectSprite = Minecraft.getInstance().getMobEffectTextures().get(p_i50827_4_);
-            this.effectName = this.getEffectName(p_i50827_4_);
+            this.effectSprite = Minecraft.getInstance().getMobEffectTextures().get(effect);
+            this.effectName = this.getEffectName(effect);
             this.screen = (TribeEffectScreen) screen;
             this.amplifier = amplifierIn;
         }
@@ -259,42 +269,44 @@ public class TribeEffectScreen extends TribeScreen {
         }
 
         public void onPress() {
-            if (!this.isSelected()) {
+            if (this.isSelected()) {
+                TribeEffectScreen.this.removeEffect(effect, amplifier, isGood);
+            } else {
                 if (this.isGood) {
                     // Are the maximum number of effects selected?
                     if (TribeEffectScreen.this.selGoodEffects.size() < TribeEffectScreen.this.maxGoodEffects && (numSelectedGood + amplifier <= maxGoodEffects)) {
-                        TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
+                        TribeEffectScreen.this.addEffect(effect, amplifier, true);
                     }
                     // Are you selecting a different level of a selected effect?
                     if (TribeEffectScreen.this.selGoodEffects.containsKey(effect) && (numSelectedGood + amplifier <= maxGoodEffects)) {
-                        TribeEffectScreen.this.removeEffect(effect, TribeEffectScreen.this.selGoodEffects.get(effect), isGood);
-                        TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
+                        TribeEffectScreen.this.removeEffect(effect, TribeEffectScreen.this.selGoodEffects.get(effect), true);
+                        TribeEffectScreen.this.addEffect(effect, amplifier, true);
                     }
-                } else if (!this.isGood) {
+                } else {
                     if (TribeEffectScreen.this.selBadEffects.size() < TribeEffectScreen.this.maxBadEffects && (numSelectedBad + amplifier <= maxBadEffects)) {
-                        TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
+                        TribeEffectScreen.this.addEffect(effect, amplifier, false);
                     }
                     if (TribeEffectScreen.this.selBadEffects.containsKey(effect) && (numSelectedBad + amplifier <= maxBadEffects)) {
-                        TribeEffectScreen.this.removeEffect(effect, TribeEffectScreen.this.selBadEffects.get(effect), isGood);
-                        TribeEffectScreen.this.addEffect(effect, amplifier, isGood);
+                        TribeEffectScreen.this.removeEffect(effect, TribeEffectScreen.this.selBadEffects.get(effect), false);
+                        TribeEffectScreen.this.addEffect(effect, amplifier, false);
                     }
                 }
-            } else if (this.isSelected()) {
-                TribeEffectScreen.this.removeEffect(effect, amplifier, isGood);
             }
             TribeEffectScreen.this.clearWidgets();
             TribeEffectScreen.this.init();
             TribeEffectScreen.this.tick();
         }
 
+        @Override
         public void renderToolTip(PoseStack matrixStack, int mouseX, int mouseY) {
-            screen.renderTooltip(matrixStack, getEffectName(this.effect), mouseX, mouseY);
+            screen.renderTooltip(matrixStack, this.effectName, mouseX, mouseY);
         }
 
         public int getAmplifier() {
             return amplifier;
         }
 
+        @Override
         protected void renderIcon(PoseStack matrixStack) {
             TribeEffectScreen.this.font.draw(matrixStack, String.valueOf(this.getAmplifier()), (float) (this.x + 2), (float) (this.y + 2), 0xffffff);
 
@@ -305,7 +317,7 @@ public class TribeEffectScreen extends TribeScreen {
         }
 
         @Override
-        public void updateNarration(NarrationElementOutput p_169152_) {
+        public void updateNarration(NarrationElementOutput pNarrationElementOutput) {
 
         }
     }
