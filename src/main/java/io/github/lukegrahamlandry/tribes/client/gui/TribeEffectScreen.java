@@ -3,7 +3,6 @@ package io.github.lukegrahamlandry.tribes.client.gui;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.lukegrahamlandry.tribes.api.tribe.EffectsInfo;
-import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
 import io.github.lukegrahamlandry.tribes.init.TribesMobEffectTags;
 import io.github.lukegrahamlandry.tribes.network.SaveEffectsPacket;
@@ -27,8 +26,8 @@ public class TribeEffectScreen extends TribeScreen {
     // Confirmation button
     private ConfirmButton confirmButton;
     // List of all positive and negative effects
-    public static List<MobEffect> posEffects = TribesConfig.getGoodEffects();
-    public static List<MobEffect> negEffects = TribesConfig.getBadEffects();
+    public List<MobEffect> posEffects = TribesMobEffectTags.getGoodEffects();
+    public List<MobEffect> negEffects = TribesMobEffectTags.getBadEffects();
     // Map of selected effects and their amplifiers
     private Map<MobEffect, Integer> selGoodEffects;
     private Map<MobEffect, Integer> selBadEffects;
@@ -256,16 +255,8 @@ public class TribeEffectScreen extends TribeScreen {
 
         // Get the name of the effect based on the amplifier
         private Component getEffectName(MobEffect effect) {
-            TranslatableComponent iformattabletextcomponent = new TranslatableComponent(effect.getDescriptionId());
-            if (this.getAmplifier() == 1) {
-                iformattabletextcomponent.append(" I");
-            } else if (this.getAmplifier() == 2) {
-                iformattabletextcomponent.append(" II");
-            } else if (this.getAmplifier() == 3) {
-                iformattabletextcomponent.append(" III");
-            }
-
-            return iformattabletextcomponent;
+            ; // TODO: this is a hack to get the name of the effect without the amplifier
+            return new TranslatableComponent(effect.getDescriptionId()).append(" " + "I".repeat(this.getAmplifier()));
         }
 
         public void onPress() {

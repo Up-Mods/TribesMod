@@ -3,16 +3,10 @@ package io.github.lukegrahamlandry.tribes.config;
 import com.electronwill.nightconfig.core.EnumGetMethod;
 import io.github.lukegrahamlandry.tribes.api.claims.HemisphereDirection;
 import io.github.lukegrahamlandry.tribes.api.tribe.Member;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class TribesConfig {
     //Declaration of config variables
@@ -38,7 +32,6 @@ public class TribesConfig {
     private static ForgeConfigSpec.IntValue daysBetweenDeityChange;
     private static ForgeConfigSpec.IntValue daysBetweenEffectsChange;
 
-    private static ForgeConfigSpec.ConfigValue<List<? extends String>> ignoredEffects;
     public static ForgeConfigSpec.IntValue removeInactiveAfterDays;
 
     private static ForgeConfigSpec.ConfigValue<String> landOwnerDisplayPosition;
@@ -73,10 +66,7 @@ public class TribesConfig {
                 .comment("I:Maximum number of chunks able to be claimed at each tribe rank: ")
                 .defineList("max_claimed_chunks", Arrays.asList(1, 4, 10, 20, 30), i -> (int) i >= 0);
         hemisphereDirection = server
-                .comment(
-                        "The direction of the hemispheres: ",
-                        "Allowed values: " + Arrays.stream(HemisphereDirection.values()).map(HemisphereDirection::name).map(s -> String.format("'%s'", s.toLowerCase(Locale.ROOT))).collect(Collectors.joining(", "))
-                )
+                .comment("The direction of the hemispheres:")
                 .defineEnum("hemisphereDirection", HemisphereDirection.NORTH_SOUTH, EnumGetMethod.NAME_IGNORECASE);
         halfNoMansLandWidth = server
                 .comment("The distance from zero to the edge of a hemisphere, half the width of no mans land : ")
@@ -96,9 +86,6 @@ public class TribesConfig {
         daysBetweenEffectsChange = server
                 .comment("The number of days you must wait between changing your tribe's effects : ")
                 .defineInRange("daysBetweenEffectsChange", 10, 0, Integer.MAX_VALUE);
-        ignoredEffects = server
-                .comment("S: effects that cannot be chosen as a persistent tribe effect : ")
-                .defineList("ignoredEffects", Arrays.asList("minecraft:bad_omen", "minecraft:conduit_power", "minecraft:health_boost", "minecraft:luck", "minecraft:unluck", "minecraft:hero_of_the_village", "minecraft:absorption"), i -> ((String) i).contains(":"));
         removeInactiveAfterDays = server
                 .comment("Players who haven't logged on in this many days will automatically be removed from the tribe they're in. Setting this value to 0 will disable this feature: ")
                 .defineInRange("removeInactiveAfterDays", 10, 0, Integer.MAX_VALUE);
@@ -175,20 +162,6 @@ public class TribesConfig {
         var punishments = deathWasPVP ? pvpDeathPunishTimes.get() : nonpvpDeathPunishTimes.get();
         index = Math.min(index, punishments.size() - 1);
         return punishments.get(index);
-    }
-
-    public static List<MobEffect> getGoodEffects() {
-        var ignored = ignoredEffects.get();
-
-        return ForgeRegistries.MOB_EFFECTS.getEntries().stream().filter(it -> ignored.contains(it.getKey().location().toString())).map(Map.Entry::getValue)
-                .filter(MobEffect::isBeneficial).filter(Predicate.not(MobEffect::isInstantenous)).toList();
-    }
-
-    public static List<MobEffect> getBadEffects() {
-        var ignored = ignoredEffects.get();
-
-        return ForgeRegistries.MOB_EFFECTS.getEntries().stream().filter(it -> ignored.contains(it.getKey().location().toString())).map(Map.Entry::getValue)
-                .filter(Predicate.not(MobEffect::isBeneficial)).filter(Predicate.not(MobEffect::isInstantenous)).toList();
     }
 
     public static int daysBetweenDeityChanges() {

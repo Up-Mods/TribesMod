@@ -1,7 +1,7 @@
 package io.github.lukegrahamlandry.tribes.client.gui;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.lukegrahamlandry.tribes.TribesMain;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -12,7 +12,7 @@ public class TribeScreen extends Screen {
     /**
      * Texture location for background.
      */
-    private ResourceLocation guiTexture;
+    private final ResourceLocation guiTexture;
     private ResourceLocation guiTexture2;
     /**
      * Starting X position for the Gui. Inconsistent use for Gui backgrounds.
@@ -85,19 +85,19 @@ public class TribeScreen extends Screen {
         // RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        if(largeGUI){
+        if (largeGUI) {
             RenderSystem.setShaderTexture(0, guiTexture);
-            // this.minecraft.getTextureManager().bind(guiTexture);
-            this.blit(matrixStack, this.guiLeft, this.guiTop, 0, 0, 2*this.xSize, this.ySize);
-            // this.minecraft.getTextureManager().bind(guiTexture2);
+            this.blit(matrixStack, this.guiLeft, this.guiTop, 0, 0, 2 * this.xSize, this.ySize);
             RenderSystem.setShaderTexture(0, guiTexture2);
-            this.blit(matrixStack, this.guiLeft+xSize, this.guiTop, 0, 0, 2*this.xSize, this.ySize);
-        }else {
-            // this.minecraft.getTextureManager().bind(guiTexture);
+            this.blit(matrixStack, this.guiLeft + xSize, this.guiTop, 0, 0, 2 * this.xSize, this.ySize);
+        } else {
             RenderSystem.setShaderTexture(0, guiTexture);
             this.blit(matrixStack, this.guiLeft, this.guiTop, 0, 0, this.xSize, this.ySize);
         }
-        if(renderTitle) this.font.draw(matrixStack, this.title, (float) this.titleX, (float) this.titleY, 4210752);
+
+        if (renderTitle) {
+            this.font.draw(matrixStack, this.title, (float) this.titleX, (float) this.titleY, 0x404040);
+        }
         super.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 }

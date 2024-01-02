@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:absorption",
+    "minecraft:bad_omen",
+    "minecraft:conduit_power",
+    "minecraft:health_boost",
+    "minecraft:hero_of_the_village",
+    "minecraft:luck",
+    "minecraft:unluck"
+  ]
+}

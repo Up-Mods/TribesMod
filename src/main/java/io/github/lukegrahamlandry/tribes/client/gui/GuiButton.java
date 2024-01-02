@@ -14,7 +14,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public abstract class GuiButton extends AbstractButton {
     private boolean selected;
     private static TribeScreen screen;
-    private int ySize;
+    private final int ySize;
 
     protected GuiButton(TribeScreen screenIn, int x, int y, int ySizeIn) {
         super(x, y, 22, 22, TextComponent.EMPTY);
