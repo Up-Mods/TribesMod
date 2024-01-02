@@ -9,26 +9,25 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 // can only be used on the server side
 public class LandClaimHelper {
     private static final HashMap<ChunkPos, Tribe> claimedChunks = new HashMap<>();
-    public static HashMap<Hemisphere, List<Tribe>> hemispheres = new HashMap<>();
+    public static Map<Hemisphere, List<Tribe>> hemispheres = new EnumMap<>(Hemisphere.class);
 
     // important to call this whenever tribes load
     public static void setup() {
-        hemispheres.put(Hemisphere.POSITIVE, new ArrayList<>());
-        hemispheres.put(Hemisphere.NEGATIVE, new ArrayList<>());
-        hemispheres.put(Hemisphere.NONE, List.of());  // never actaully used but would crash without unless add a check
 
         for (Tribe tribe : TribesManager.getTribes()) {
             for (ChunkPos chunk : tribe.getClaimedChunks()) {
                 claimedChunks.put(chunk, tribe);
             }
-            hemispheres.get(tribe.getHemisphereAccess()).add(tribe);
+
+            var hemisphere = tribe.getHemisphereAccess();
+            if (hemisphere != Hemisphere.NONE) {
+                hemispheres.computeIfAbsent(hemisphere, h -> new ArrayList<>()).add(tribe);
+            }
         }
     }
 
@@ -89,7 +88,7 @@ public class LandClaimHelper {
 
         // hemisphere
         if (TribesConfig.getRequireHemisphereAccess()) {
-            return hemispheres.get(currentHemisphere).contains(interactingTribe);
+            return hemispheres.getOrDefault(currentHemisphere, List.of()).contains(interactingTribe);
         }
 
         return true;
@@ -118,7 +117,7 @@ public class LandClaimHelper {
     }
 
     // important to call this whenever a tribe is deleted
-    public static void forgetTribe(@Nullable Tribe tribe) {
+    public static void forgetTribe(Tribe tribe) {
         tribe.claims.forEach((chunk) -> LandClaimHelper.setChunkOwner(chunk, null));
         LandClaimHelper.hemispheres.forEach((hemisphere, theTribes) -> theTribes.remove(tribe));
 
