@@ -1,6 +1,5 @@
 package io.github.lukegrahamlandry.tribes.events;
 
-
 import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.NetworkHandler;
