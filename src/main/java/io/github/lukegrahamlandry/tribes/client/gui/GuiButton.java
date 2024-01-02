@@ -1,8 +1,7 @@
 package io.github.lukegrahamlandry.tribes.client.gui;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.TextComponent;
@@ -14,30 +13,29 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public abstract class GuiButton extends AbstractButton {
     private boolean selected;
     private static TribeScreen screen;
-    private final int ySize;
+    private final int textureYOffset;
 
     protected GuiButton(TribeScreen screenIn, int x, int y, int ySizeIn) {
         super(x, y, 22, 22, TextComponent.EMPTY);
         screen = screenIn;
-        ySize = ySizeIn;
+        textureYOffset = ySizeIn;
     }
 
     public void renderButton(PoseStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-      Minecraft.getInstance().getTextureManager().getTexture(screen.getGuiTexture());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, screen.getGuiTexture());
-        // RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+
         int j = 0;
         if (!this.active) {
             j += this.width * 2;
         } else if (this.selected) {
-            j += this.width * 1;
+            j += this.width;
         } else if (this.isHoveredOrFocused()) {
             j += this.width * 3;
         }
 
-        this.blit(matrixStack, this.x, this.y, j, ySize, this.width, this.height);
+        this.blit(matrixStack, this.x, this.y, j, textureYOffset, this.width, this.height);
         this.renderIcon(matrixStack);
     }
 

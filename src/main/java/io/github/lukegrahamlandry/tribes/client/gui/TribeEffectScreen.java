@@ -8,6 +8,7 @@ import io.github.lukegrahamlandry.tribes.init.TribesMobEffectTags;
 import io.github.lukegrahamlandry.tribes.network.SaveEffectsPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Widget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -131,17 +132,12 @@ public class TribeEffectScreen extends TribeScreen {
             if (index >= negEffects.size()) break;
             MobEffect effect = negEffects.get(index);
 
-            EffectButton tribeeffect$effectbutton;
             i = (k >= 154) ? 82 : i;
             k = (k >= 154) ? 0 : k;
             for (int j = 1; j <= 3; j++) {
-                tribeeffect$effectbutton = new EffectButton(this, this.guiLeft + this.xSize + 16 + i, this.guiTop + 36 + k, ySize, effect, false, j);
-                this.addRenderableWidget(tribeeffect$effectbutton);
-                if (selBadEffects.containsKey(effect) && selBadEffects.get(effect) == j) {
-                    tribeeffect$effectbutton.setSelected(true);
-                } else {
-                    tribeeffect$effectbutton.setSelected(false);
-                }
+                var effectButton = new EffectButton(this, this.guiLeft + this.xSize + 16 + i, this.guiTop + 36 + k, ySize, effect, false, j);
+                effectButton.setSelected(selBadEffects.containsKey(effect) && selBadEffects.get(effect) == j);
+                this.addRenderableWidget(effectButton);
                 i += 22;
             }
             i -= 22 * 3;
@@ -155,6 +151,12 @@ public class TribeEffectScreen extends TribeScreen {
 
         this.font.draw(matrixStack, "Benefits: " + numSelectedGood + "/" + maxGoodEffects, this.guiLeft + 15, this.guiTop + 20, 0x5d5d5d);
         this.font.draw(matrixStack, "Drawbacks: " + numSelectedBad + "/" + maxBadEffects, this.guiLeft + 20 + xSize, this.guiTop + 20, 0x5d5d5d);
+
+        for (Widget widget : this.renderables) {
+            if(widget instanceof GuiButton button && button.isHoveredOrFocused()) {
+                button.renderToolTip(matrixStack, mouseX, mouseY);
+            }
+        }
     }
 
     // Add effect to selected list
