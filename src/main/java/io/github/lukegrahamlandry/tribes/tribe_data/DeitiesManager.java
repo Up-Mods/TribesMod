@@ -54,9 +54,11 @@ public class DeitiesManager {
     }
 
     public static HashMap<String, DeityData> deities = new HashMap<>();
+    public static List<String> deitiesOrder = new ArrayList<>();
 
     public static void fromJson(JsonArray allDeitiesJson) {
         deities.clear();
+        deitiesOrder.clear();
 
         for (JsonElement e : allDeitiesJson) {
             JsonObject deityJson = e.getAsJsonObject();
@@ -73,6 +75,7 @@ public class DeitiesManager {
             DeityData result = new DeityData(key, displayName, bookTitle, bookAuthor, label, domains, enabled, banner);
             if (result.enabled) {
                 deities.put(key, result);
+                deitiesOrder.add(key);
             }
         }
     }

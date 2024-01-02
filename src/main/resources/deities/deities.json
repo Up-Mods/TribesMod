@@ -52,7 +52,7 @@
     "domains": [
       "uncertainty",
       "wisdom",
-      "and hermits"
+      "hermits"
     ]
   },
   {
@@ -93,8 +93,8 @@
     "enabled": true,
     "domains": [
       "pleasure",
-      "sloth",
-      "heresy"
+      "comfiness",
+      "lust"
     ]
   },
   {
@@ -106,9 +106,9 @@
     "enabled": true,
     "banner": "tribes:izanagi",
     "domains": [
-      "justice",
       "courage",
-      "the far east"
+      "cuteness",
+      "the Far East"
     ]
   },
   {
@@ -144,7 +144,7 @@
     "display name": "Ikea",
     "book title": "description",
     "book author": "me",
-    "label": "Unknown being",
+    "label": "Mascot",
     "banner": "tribes:ikea",
     "enabled": true,
     "domains": [

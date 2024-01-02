@@ -19,7 +19,7 @@ public class TribesMobEffectTags {
     public static List<MobEffect> getGoodEffects() {
         var excluded = Registry.MOB_EFFECT.getOrCreateTag(EXCLUDED_EFFECTS);
         return Registry.MOB_EFFECT.holders()
-                .filter(excluded::contains).map(Holder.Reference::value)
+                .filter(Predicate.not(excluded::contains)).map(Holder.Reference::value)
                 .filter(MobEffect::isBeneficial)
                 .filter(Predicate.not(MobEffect::isInstantenous))
                 .toList();
@@ -29,7 +29,7 @@ public class TribesMobEffectTags {
     public static List<MobEffect> getBadEffects() {
         var excluded = Registry.MOB_EFFECT.getOrCreateTag(EXCLUDED_EFFECTS);
         return Registry.MOB_EFFECT.holders()
-                .filter(excluded::contains).map(Holder.Reference::value)
+                .filter(Predicate.not(excluded::contains)).map(Holder.Reference::value)
                 .filter(Predicate.not(MobEffect::isBeneficial))
                 .filter(Predicate.not(MobEffect::isInstantenous))
                 .toList();

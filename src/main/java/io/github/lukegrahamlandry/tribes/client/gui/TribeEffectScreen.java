@@ -69,10 +69,6 @@ public class TribeEffectScreen extends TribeScreen {
     @Override
     protected void init() {
         super.init();
-        addRenderableWidgets();
-    }
-
-    public void addRenderableWidgets() {
         this.backButton = this.addRenderableWidget(new Button(this.guiLeft + (this.xSize - 11), (this.ySize / 2 - 11) + 30, 20, 20, new TextComponent("<"), (p_214318_1_) -> {
             if (this.backButton.active) {
                 this.page--;
@@ -165,22 +161,20 @@ public class TribeEffectScreen extends TribeScreen {
     private void addEffect(MobEffect effect, int amplifier, boolean isGood) {
         if (isGood) {
             selGoodEffects.put(effect, amplifier);
-            numSelectedGood += amplifier;
         } else {
             selBadEffects.put(effect, amplifier);
-            numSelectedBad += amplifier;
         }
+        calcNumSelected();
     }
 
     // Remove effect from selected list
     private void removeEffect(MobEffect effect, int amplifier, boolean isGood) {
         if (isGood) {
             selGoodEffects.remove(effect, amplifier);
-            numSelectedGood -= amplifier;
         } else {
             selBadEffects.remove(effect, amplifier);
-            numSelectedBad -= amplifier;
         }
+        calcNumSelected();
     }
 
     private void calcNumSelected() {
@@ -191,13 +185,22 @@ public class TribeEffectScreen extends TribeScreen {
         var singleLevelEffects = ForgeRegistries.MOB_EFFECTS.tags().getTag(TribesMobEffectTags.SINGLE_LEVEL_EFFECTS);
 
         selGoodEffects.forEach((effect, integer) -> {
-            if (!seen.contains(effect) || !singleLevelEffects.contains(effect)) {
+
+            if(singleLevelEffects.contains(effect)) {
+                integer = 1;
+            }
+
+            if (!seen.contains(effect)) {
                 numSelectedGood += integer;
                 seen.add(effect);
             }
         });
         selBadEffects.forEach((effect, integer) -> {
-            if (!seen.contains(effect) || !singleLevelEffects.contains(effect)) {
+            if (singleLevelEffects.contains(effect)) {
+                integer = 1;
+            }
+
+            if (!seen.contains(effect)) {
                 numSelectedBad += integer;
                 seen.add(effect);
             }
@@ -255,6 +258,11 @@ public class TribeEffectScreen extends TribeScreen {
 
         // Get the name of the effect based on the amplifier
         private Component getEffectName(MobEffect effect) {
+
+            if (ForgeRegistries.MOB_EFFECTS.tags().getTag(TribesMobEffectTags.SINGLE_LEVEL_EFFECTS).contains(effect)) {
+                return new TranslatableComponent(effect.getDescriptionId());
+            }
+
             ; // TODO: this is a hack to get the name of the effect without the amplifier
             return new TranslatableComponent(effect.getDescriptionId()).append(" " + "I".repeat(this.getAmplifier()));
         }

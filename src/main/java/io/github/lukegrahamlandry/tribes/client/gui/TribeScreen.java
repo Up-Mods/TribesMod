@@ -74,8 +74,6 @@ public class TribeScreen extends Screen {
         //Setting title positions based on background, window, and text sizes
         this.titleX = (this.width - this.font.width(this.title)) / 2;
         this.titleY = (this.height - this.ySize + 20) / 2;
-
-        super.init();
     }
 
     //Rendering of background, textbox, and title
