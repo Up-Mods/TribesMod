@@ -5,34 +5,37 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.github.lukegrahamlandry.tribes.commands.util.OfflinePlayerArgumentType;
 import io.github.lukegrahamlandry.tribes.tribe_data.*;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.world.entity.player.Player;
+
+import java.util.UUID;
 
 public class InviteCommands {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("invite")
-                .then(Commands.literal("send").then(Commands.argument("player", EntityArgument.player()).executes(InviteCommands::invitePlayer))).executes(ctx -> {
-                    ctx.getSource().sendSuccess(TribeError.ARG_PLAYER.getText(), false);
-                    return 0;
-                })
-                .then(Commands.literal("revoke").then(Commands.argument("player", EntityArgument.player()).executes(InviteCommands::uninvitePlayer))).executes(ctx -> {
-                    ctx.getSource().sendSuccess(TribeError.ARG_PLAYER.getText(), false);
-                    return 0;
-                })
+                .then(Commands.literal("send")
+                        .then(Commands.argument("player", OfflinePlayerArgumentType.offlinePlayerID())
+                                .executes(InviteCommands::invitePlayer)
+                        )
+                )
+                .then(Commands.literal("revoke")
+                        .then(Commands.argument("player", OfflinePlayerArgumentType.offlinePlayerID())
+                                .executes(InviteCommands::uninvitePlayer)
+                        )
+                )
                 .then(Commands.literal("toggle")
-                        .then(Commands.argument("private", BoolArgumentType.bool()).executes(InviteCommands::setPrivate))
-                        .executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_MISSING.getText(), false);
-                            return 0;
-                        }));
+                        .then(Commands.argument("private", BoolArgumentType.bool())
+                                .executes(InviteCommands::setPrivate)
+                        )
+                );
     }
 
     private static int invitePlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         Player leader = context.getSource().getPlayerOrException();
-        Player toInvite = EntityArgument.getPlayer(context, "player");
+        UUID toInvite = OfflinePlayerArgumentType.getOfflinePlayer(context, "player");
 
         Tribe tribe = TribesManager.getTribeOf(leader.getUUID());
 
@@ -48,20 +51,20 @@ public class InviteCommands {
             context.getSource().sendFailure(TribeError.RANK_TOO_LOW.getText());
             return 0;
         }
-        if (TribesManager.getTribeOf(toInvite.getUUID()) != null) {
+        if (TribesManager.getTribeOf(toInvite) != null) {
             context.getSource().sendFailure(TribeError.IN_OTHER_TRIBE.getText());
             return 0;
         }
 
-        tribe.getPendingInvites().add(toInvite.getUUID());
-        TribeHelper.broadcastMessage(tribe, TribeSuccessType.INVITE_SENT, leader, context.getSource().getServer(), toInvite);
+        tribe.getPendingInvites().add(toInvite);
+        TribeHelper.broadcastMessage(tribe, TribeSuccessType.INVITE_SENT, leader, context.getSource().getServer(), OfflinePlayerArgumentType.getPlayerName(toInvite));
 
         return Command.SINGLE_SUCCESS;
     }
 
     private static int uninvitePlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         Player leader = context.getSource().getPlayerOrException();
-        Player toInvite = EntityArgument.getPlayer(context, "player");
+        UUID toInvite = OfflinePlayerArgumentType.getOfflinePlayer(context, "player");
 
         Tribe tribe = TribesManager.getTribeOf(leader.getUUID());
 
@@ -74,8 +77,8 @@ public class InviteCommands {
             return 0;
         }
 
-        tribe.getPendingInvites().remove(toInvite.getUUID());
-        TribeHelper.broadcastMessage(tribe, TribeSuccessType.INVITE_REMOVED, leader, context.getSource().getServer(), toInvite);
+        tribe.getPendingInvites().remove(toInvite);
+        TribeHelper.broadcastMessage(tribe, TribeSuccessType.INVITE_REMOVED, leader, context.getSource().getServer(), OfflinePlayerArgumentType.getPlayerName(toInvite));
 
         return 0;
     }

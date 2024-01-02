@@ -38,7 +38,8 @@ public enum TribeError {
     INVALID_RANK("invalid_rank"),
     NOT_PRIVATE("not_private"),
     IS_PRIVATE("is_private"),
-    EVENT_CANCELLED("event_cancelled");
+    EVENT_CANCELLED("event_cancelled"),
+    PLAYER_NOT_FOUND("player_not_found");
 
     private final String translationKey;
 

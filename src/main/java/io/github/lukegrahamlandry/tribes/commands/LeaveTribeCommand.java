@@ -23,14 +23,14 @@ public class LeaveTribeCommand {
         Player player = source.getSource().getPlayerOrException();
 
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
-        if (tribe != null){
+        if (tribe != null) {
             ConfirmCommand.add(player, () -> {
                 TribesManager.leaveTribe(player);
                 source.getSource().sendSuccess(TribeSuccessType.YOU_LEFT.getText(), true);
             });
-            return Command.SINGLE_SUCCESS;
         } else {
-            source.getSource().sendSuccess(TribeError.YOU_NOT_IN_TRIBE.getText(), true);
+            source.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
         }
 
         return Command.SINGLE_SUCCESS;

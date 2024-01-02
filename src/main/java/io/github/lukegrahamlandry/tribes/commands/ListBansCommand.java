@@ -5,22 +5,22 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.github.lukegrahamlandry.tribes.commands.util.OfflinePlayerArgumentType;
 import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.TextComponent;
-import net.minecraft.world.entity.player.Player;
 
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ListBansCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return Commands.literal("bans")
-                .then(Commands.argument("player", EntityArgument.player())
+                .then(Commands.argument("player", OfflinePlayerArgumentType.offlinePlayerID())
                         .executes(ListBansCommand::handleListBans)
                 )
                 .executes(ListBansCommand::handleListBansTribe);
@@ -56,13 +56,13 @@ public class ListBansCommand {
     ;
 
     public static int handleListBans(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        Player playerToCheck = EntityArgument.getPlayer(context, "player");
+        UUID playerToCheck = OfflinePlayerArgumentType.getOfflinePlayer(context, "player");
 
         var bannedIn = TribesManager.getBans(playerToCheck);
         if (bannedIn.isEmpty()) {
-            context.getSource().sendSuccess(TribeSuccessType.NO_BANS.getBlueText(playerToCheck), true);
+            context.getSource().sendSuccess(TribeSuccessType.NO_BANS.getBlueText(OfflinePlayerArgumentType.getPlayerName(playerToCheck)), true);
         } else {
-            context.getSource().sendSuccess(TribeSuccessType.LIST_BANS.getBlueText(playerToCheck, bannedIn.stream().map(Tribe::getName).collect(Collectors.joining(", "))), true);
+            context.getSource().sendSuccess(TribeSuccessType.LIST_BANS.getBlueText(OfflinePlayerArgumentType.getPlayerName(playerToCheck), bannedIn.stream().map(Tribe::getName).collect(Collectors.joining(", "))), true);
         }
 
         return Command.SINGLE_SUCCESS;

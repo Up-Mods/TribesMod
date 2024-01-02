@@ -16,10 +16,6 @@ public class NeutralTribeCommand {
         return Commands.literal("neutral")
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(NeutralTribeCommand::handleJoin)
-                ).executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_TRIBE.getText(), false);
-                            return 0;
-                        }
                 );
 
     }

@@ -34,7 +34,6 @@ public class JoinTribeCommand {
     public static int handleJoin(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         Player player = context.getSource().getPlayerOrException();
         Tribe tribe = TribeArgumentType.getTribe(context, "tribe");
-        if (tribe == null) return 1;
 
         if (playerHasTribe(player.getUUID())) {
             context.getSource().sendFailure(TribeError.IN_TRIBE.getText());

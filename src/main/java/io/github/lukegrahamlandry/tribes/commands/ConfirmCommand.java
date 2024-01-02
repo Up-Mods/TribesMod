@@ -21,7 +21,7 @@ public class ConfirmCommand {
         return Commands.literal("confirm").executes(ConfirmCommand::handleConfirm);
     }
 
-    public static void add(Player player, IConfirmAction action){
+    public static void add(Player player, IConfirmAction action) {
         player.displayClientMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), false);
         CONFIRM_ACTIONS.put(player.getUUID(), action);
     }
@@ -31,11 +31,12 @@ public class ConfirmCommand {
 
 
         IConfirmAction action = CONFIRM_ACTIONS.get(player.getUUID());
-        if (action == null){
-            source.getSource().sendSuccess(TribeError.NO_CONFIRM.getText(), true);
-        } else {
-            action.call();
+        if (action == null) {
+            source.getSource().sendFailure(TribeError.NO_CONFIRM.getText());
+            return 0;
         }
+
+        action.call();
 
         return Command.SINGLE_SUCCESS;
     }

@@ -104,8 +104,8 @@ public class TribesManager {
         return TribeResult.empty_success();
     }
 
-    public static List<Tribe> getBans(Player playerToCheck) {
-        return tribes.values().stream().filter(tribe -> tribe.isBanned(playerToCheck.getUUID())).toList();
+    public static List<Tribe> getBans(UUID playerToCheck) {
+        return tribes.values().stream().filter(tribe -> tribe.isBanned(playerToCheck)).toList();
     }
 
     public static int getNumberOfGoodEffects(Player player) {

@@ -32,20 +32,17 @@ public class DeityCommands {
                 .then(Commands.literal("list").executes(DeityCommands::handleList))
                 .then(Commands.literal("banner").executes(DeityCommands::createBanner))
                 .then(Commands.literal("choose")
-                        .then(Commands.argument("deity", DeityArgumentType.tribe())
+                        .then(Commands.argument("deity", DeityArgumentType.deity())
                                 .executes(DeityCommands::handleChoose))
                         .executes(ctx -> {
                             ctx.getSource().sendFailure(TribeError.ARG_DEITY.getText());
                             return 0;
                         }))
                 .then(Commands.literal("describe")
-                        .then(Commands.argument("deity", DeityArgumentType.tribe())
-                                .executes(DeityCommands::handleDescribe))
-                        .executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_DEITY.getText(), false);
-                            return 0;
-                        }))
-                ;
+                        .then(Commands.argument("deity", DeityArgumentType.deity())
+                                .executes(DeityCommands::handleDescribe)
+                        )
+                );
     }
 
     private static int handleChoose(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
@@ -88,7 +85,7 @@ public class DeityCommands {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int handleDescribe(CommandContext<CommandSourceStack> source) {
+    private static int handleDescribe(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
         DeitiesManager.DeityData data = DeityArgumentType.getDeity(source, "deity");
         if (data != null) {
             //FIXME make translatable

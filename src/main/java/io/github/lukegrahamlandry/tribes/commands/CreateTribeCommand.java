@@ -3,7 +3,6 @@ package io.github.lukegrahamlandry.tribes.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.commands.CommandSourceStack;
@@ -27,11 +26,6 @@ public class CreateTribeCommand {
 
                             return Command.SINGLE_SUCCESS;
                         })
-                ).executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_MISSING.getText(), false);
-                            return 0;
-                        }
                 );
-
     }
 }

@@ -6,7 +6,10 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.lukegrahamlandry.tribes.api.tribe.Relation;
 import io.github.lukegrahamlandry.tribes.commands.util.TribeArgumentType;
-import io.github.lukegrahamlandry.tribes.tribe_data.*;
+import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeHelper;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
+import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.entity.player.Player;
@@ -16,10 +19,6 @@ public class AllyTribeCommand {
         return Commands.literal("ally")
                 .then(Commands.argument("tribe", TribeArgumentType.tribe())
                         .executes(AllyTribeCommand::handleAlly)
-                ).executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_TRIBE.getText(), false);
-                            return 0;
-                        }
                 );
 
     }

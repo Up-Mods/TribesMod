@@ -39,8 +39,8 @@ public class ChunkClaimCommand {
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
 
         if (tribe == null) {
-            source.getSource().sendSuccess(TribeError.YOU_NOT_IN_TRIBE.getText(), true);
-            return Command.SINGLE_SUCCESS;
+            source.getSource().sendFailure(TribeError.YOU_NOT_IN_TRIBE.getText());
+            return 0;
         }
 
         var result = tribe.claimChunk(getChunk(player), player.getUUID());

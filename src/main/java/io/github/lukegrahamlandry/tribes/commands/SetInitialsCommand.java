@@ -30,7 +30,7 @@ public class SetInitialsCommand {
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
         var result = tribe.trySetInitials(str, player.getUUID(), server);
         if (!result.success()) {
-            context.getSource().sendSuccess(result.error().getText(), true);
+            context.getSource().sendFailure(result.error().getText());
             return 0;
         }
 

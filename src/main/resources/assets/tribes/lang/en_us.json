@@ -37,6 +37,7 @@
   "error.tribes.not_private": "Your tribe is not private.",
   "error.tribes.is_private": "That tribe is private. Cannot be joined without an invitation.",
   "error.tribes.event_cancelled": "Another mod prohibited this action.",
+  "error.tribes.player_not_found": "No player found matching %s",
   "success.tribes.made_tribe": "The tribe %s has been created.",
   "success.tribes.ally_tribe": "The tribe %s is now your ally.",
   "success.tribes.enemy_tribe": "The tribe %s is now your enemy.",

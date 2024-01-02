@@ -2,6 +2,7 @@ package io.github.lukegrahamlandry.tribes;
 
 import com.mojang.logging.LogUtils;
 import io.github.lukegrahamlandry.tribes.commands.util.DeityArgumentType;
+import io.github.lukegrahamlandry.tribes.commands.util.OfflinePlayerArgumentType;
 import io.github.lukegrahamlandry.tribes.commands.util.TribeArgumentType;
 import io.github.lukegrahamlandry.tribes.config.Config;
 import io.github.lukegrahamlandry.tribes.init.*;
@@ -40,7 +41,8 @@ public class TribesMain {
         BannerInit.setup();
 
         ArgumentTypes.register("tribe", TribeArgumentType.class, new EmptyArgumentSerializer<>(TribeArgumentType::tribe));
-        ArgumentTypes.register("deity", DeityArgumentType.class, new EmptyArgumentSerializer<>(DeityArgumentType::tribe));
+        ArgumentTypes.register("deity", DeityArgumentType.class, new EmptyArgumentSerializer<>(DeityArgumentType::deity));
+        ArgumentTypes.register("maybe_offline_player", OfflinePlayerArgumentType.class, new EmptyArgumentSerializer<>(OfflinePlayerArgumentType::offlinePlayerID));
 
         // event listeners
         eventBus.addListener(this::setup);

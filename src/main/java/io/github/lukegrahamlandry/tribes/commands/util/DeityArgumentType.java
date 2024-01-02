@@ -3,11 +3,12 @@ package io.github.lukegrahamlandry.tribes.commands.util;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.github.lukegrahamlandry.tribes.tribe_data.DeitiesManager;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
-import net.minecraft.commands.CommandSourceStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,7 +20,10 @@ import java.util.concurrent.CompletableFuture;
 // further thinking required on how to fix this
 
 public class DeityArgumentType implements ArgumentType<DeitiesManager.DeityData> {
-    public static DeityArgumentType tribe() {
+
+    private static final SimpleCommandExceptionType INVALID_DEITY = new SimpleCommandExceptionType(TribeError.INVALID_DEITY.getText());
+
+    public static DeityArgumentType deity() {
         return new DeityArgumentType();
     }
 
@@ -35,14 +39,11 @@ public class DeityArgumentType implements ArgumentType<DeitiesManager.DeityData>
         return null;
     }
 
-    public static <S> DeitiesManager.DeityData getDeity(CommandContext<S> context, String name) {
+    public static <S> DeitiesManager.DeityData getDeity(CommandContext<S> context, String name) throws CommandSyntaxException {
         try {
             return Objects.requireNonNull(context.getArgument(name, DeitiesManager.DeityData.class));
         } catch (Exception e) {
-            if (context.getSource() instanceof CommandSourceStack) {
-                ((CommandSourceStack) context.getSource()).sendSuccess(TribeError.INVALID_DEITY.getText(), true);
-            }
-            return null;
+            throw INVALID_DEITY.create();
         }
     }
 

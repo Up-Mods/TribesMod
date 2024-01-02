@@ -26,24 +26,19 @@ public class AdminCommands {
                 .then(Commands.literal("load").executes(AdminCommands::loadData))
                 .then(Commands.literal("delete")
                         .then(Commands.argument("name", StringArgumentType.greedyString())
-                                .executes(AdminCommands::handleDelete))
-                        .executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_TRIBE.getText(), false);
-                            return 0;
-                        }))
+                                .executes(AdminCommands::handleDelete)
+                        )
+                )
                 .then(Commands.literal("rename")
                         .then(Commands.argument("tribe", TribeArgumentType.tribe())
                                 .then(Commands.argument("name", StringArgumentType.string())
                                         .executes(AdminCommands::handleRename))
                                 .executes(ctx -> {
-                                    ctx.getSource().sendSuccess(new TextComponent("choose a new name for " + StringArgumentType.getString(ctx, "name")), false);
+                                    ctx.getSource().sendSuccess(new TextComponent("Choose a new name for " + StringArgumentType.getString(ctx, "name")), false);
                                     return 0;
-                                }))
-                        .executes(ctx -> {
-                            ctx.getSource().sendSuccess(TribeError.ARG_TRIBE.getText(), false);
-                            return 0;
-                        }))
-                ;
+                                })
+                        )
+                );
     }
 
     private static int handleRename(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
