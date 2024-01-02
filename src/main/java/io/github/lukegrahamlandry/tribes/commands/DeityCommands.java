@@ -65,7 +65,7 @@ public class DeityCommands {
         Instant lastChange = tribe.getDeityInfo().map(DeityInfo::getLastChanged).orElse(Instant.MIN);
         if (lastChange.isAfter(Instant.now().minus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS))) {
             long hoursToWait = Instant.now().until(lastChange.plus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS), ChronoUnit.HOURS);
-            source.getSource().sendFailure(TribeError.getWaitText(hoursToWait));
+            source.getSource().sendFailure(TribeError.WAIT_HOURS.getTextWithArgs(hoursToWait));
         } else {
             ConfirmCommand.add(player, () -> {
                 tribe.setDeityInfo(new DeityInfo(deity.key, Instant.now()));

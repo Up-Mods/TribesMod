@@ -48,6 +48,10 @@ public class InviteCommands {
             context.getSource().sendFailure(TribeError.RANK_TOO_LOW.getText());
             return 0;
         }
+        if (TribesManager.getTribeOf(toInvite.getUUID()) != null) {
+            context.getSource().sendFailure(TribeError.IN_OTHER_TRIBE.getText());
+            return 0;
+        }
 
         tribe.getPendingInvites().add(toInvite.getUUID());
         TribeHelper.broadcastMessage(tribe, TribeSuccessType.INVITE_SENT, leader, context.getSource().getServer(), toInvite);

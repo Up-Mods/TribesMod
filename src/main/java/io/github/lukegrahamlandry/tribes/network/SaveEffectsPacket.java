@@ -70,7 +70,7 @@ public class SaveEffectsPacket {
                 var target = lastChanged.plus(TribesConfig.daysBetweenEffectsChanges(), ChronoUnit.DAYS);
                 if (now.isBefore(target)) {
                     long hours = now.until(target, ChronoUnit.HOURS);
-                    player.displayClientMessage(TribeError.getWaitText(hours), false);
+                    player.displayClientMessage(TribeError.WAIT_HOURS.getTextWithArgs(hours), false);
                     return;
                 }
 

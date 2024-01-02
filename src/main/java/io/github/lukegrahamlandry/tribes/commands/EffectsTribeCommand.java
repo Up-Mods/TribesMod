@@ -39,7 +39,7 @@ public class EffectsTribeCommand {
         var target = lastChanged.plus(TribesConfig.daysBetweenEffectsChanges(), ChronoUnit.DAYS);
         if (now.isBefore(target)) {
             long hours = now.until(target, ChronoUnit.HOURS);
-            source.getSource().sendFailure(TribeError.getWaitText(hours));
+            source.getSource().sendFailure(TribeError.WAIT_HOURS.getTextWithArgs(hours));
             return 0;
         }
 
