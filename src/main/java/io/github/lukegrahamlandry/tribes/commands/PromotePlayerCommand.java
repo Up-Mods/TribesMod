@@ -7,11 +7,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.lukegrahamlandry.tribes.api.tribe.Member;
 import io.github.lukegrahamlandry.tribes.commands.util.OfflinePlayerArgumentType;
 import io.github.lukegrahamlandry.tribes.tribe_data.*;
+import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.UUID;
 
@@ -25,7 +26,7 @@ public class PromotePlayerCommand {
     }
 
     public static int handle(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        Player playerRunning = context.getSource().getPlayerOrException();
+        ServerPlayer playerRunning = context.getSource().getPlayerOrException();
         UUID playerTarget = OfflinePlayerArgumentType.getOfflinePlayer(context, "player");
         MinecraftServer server = context.getSource().getServer();
 
@@ -44,8 +45,9 @@ public class PromotePlayerCommand {
                 return 0;
             }
 
-            context.getSource().sendSuccess(new TextComponent("make " + OfflinePlayerArgumentType.getPlayerName(playerTarget) + " the leader of your tribe?"), true);
+            playerRunning.sendMessage(new TextComponent("make " + OfflinePlayerArgumentType.getPlayerName(playerTarget) + " the leader of your tribe?"), Util.NIL_UUID);
 
+            playerRunning.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
             ConfirmCommand.add(playerRunning, () -> {
                 var result = tribe.promotePlayer(playerRunning.getUUID(), playerTarget);
 

@@ -10,6 +10,7 @@ import io.github.lukegrahamlandry.tribes.commands.util.DeityArgumentType;
 import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import io.github.lukegrahamlandry.tribes.init.BannerInit;
 import io.github.lukegrahamlandry.tribes.tribe_data.*;
+import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.nbt.CompoundTag;
@@ -64,6 +65,7 @@ public class DeityCommands {
             long hoursToWait = Instant.now().until(lastChange.plus(TribesConfig.daysBetweenDeityChanges(), ChronoUnit.DAYS), ChronoUnit.HOURS);
             source.getSource().sendFailure(TribeError.WAIT_HOURS.getTextWithArgs(hoursToWait));
         } else {
+            player.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
             ConfirmCommand.add(player, () -> {
                 tribe.setDeityInfo(new DeityInfo(deity.key, Instant.now()));
                 source.getSource().sendSuccess(TribeSuccessType.CHOOSE_DEITY.getText(deity.displayName), true);

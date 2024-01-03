@@ -11,6 +11,7 @@ import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeHelper;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
+import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextColor;
@@ -45,6 +46,7 @@ public class HemiAccessCommand {
             return 0;
         }
 
+        player.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
         ConfirmCommand.add(player, () -> {
             if (tribe.selectHemisphere(player, result.value()).success()) {
                 TribeHelper.broadcastMessage(tribe, TribeSuccessType.CHOOSE_HEMISPHERE, player, ctx.getSource().getServer(), side);

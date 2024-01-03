@@ -38,6 +38,12 @@ public class OfflinePlayerArgumentType implements ArgumentType<OfflinePlayerArgu
     @Override
     public OfflinePlayerArgumentType.Data parse(StringReader reader) throws CommandSyntaxException {
         String nameOrId = reader.readUnquotedString();
+
+        var onlinePlayer = Optional.ofNullable(server).map(s -> s.getPlayerList().getPlayerByName(nameOrId));
+        if (onlinePlayer.isPresent()) {
+            return new Data(onlinePlayer.get().getUUID());
+        }
+
         try {
             return new Data(UUIDTypeAdapter.fromString(nameOrId));
         } catch (IllegalArgumentException e) {

@@ -5,6 +5,7 @@ import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
+import net.minecraft.Util;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -16,24 +17,26 @@ public class PacketLeaveTribe {
 
     }
 
-    public void encode(FriendlyByteBuf buf){
+    public void encode(FriendlyByteBuf buf) {
 
     }
 
-    public PacketLeaveTribe(){
+    public PacketLeaveTribe() {
 
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx){
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+        var player = ctx.get().getSender();
         ctx.get().enqueueWork(() -> {
-            Tribe tribe = TribesManager.getTribeOf(ctx.get().getSender().getUUID());
-            if (tribe != null){
-                ConfirmCommand.add(ctx.get().getSender(), () -> {
-                    TribesManager.leaveTribe(ctx.get().getSender());
-                    ctx.get().getSender().sendMessage(TribeSuccessType.YOU_LEFT.getText(), ctx.get().getSender().getUUID());
+            Tribe tribe = TribesManager.getTribeOf(player.getUUID());
+            if (tribe != null) {
+                player.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
+                ConfirmCommand.add(player, () -> {
+                    TribesManager.leaveTribe(player);
+                    player.sendMessage(TribeSuccessType.YOU_LEFT.getText(), Util.NIL_UUID);
                 });
             } else {
-                ctx.get().getSender().sendMessage(TribeError.YOU_NOT_IN_TRIBE.getText(), ctx.get().getSender().getUUID());
+                player.sendMessage(TribeError.YOU_NOT_IN_TRIBE.getText(), Util.NIL_UUID);
             }
         });
         ctx.get().setPacketHandled(true);

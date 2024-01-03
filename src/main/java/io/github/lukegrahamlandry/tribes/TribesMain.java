@@ -15,7 +15,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
 @Mod(TribesMain.MOD_ID)
@@ -27,12 +26,8 @@ public class TribesMain {
         IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         // register configs
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, Config.client_config);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, Config.server_config);
-
-        // load configs
-        Config.loadConfig(Config.client_config, FMLPaths.CONFIGDIR.get().resolve(MOD_ID + "-client.toml").toString());
-        Config.loadConfig(Config.server_config, FMLPaths.CONFIGDIR.get().resolve(MOD_ID + "-server.toml").toString());
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, Config.client_config, "tribes-client.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, Config.server_config, "tribes-server.toml");
 
         // register
         ItemInit.ITEMS.register(eventBus);

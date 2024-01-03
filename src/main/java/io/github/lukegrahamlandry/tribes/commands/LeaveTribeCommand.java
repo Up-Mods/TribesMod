@@ -8,9 +8,10 @@ import io.github.lukegrahamlandry.tribes.tribe_data.Tribe;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeError;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribeSuccessType;
 import io.github.lukegrahamlandry.tribes.tribe_data.TribesManager;
+import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 
 public class LeaveTribeCommand {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
@@ -20,10 +21,11 @@ public class LeaveTribeCommand {
     }
 
     public static int handleLeave(CommandContext<CommandSourceStack> source) throws CommandSyntaxException {
-        Player player = source.getSource().getPlayerOrException();
+        ServerPlayer player = source.getSource().getPlayerOrException();
 
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
         if (tribe != null) {
+            player.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
             ConfirmCommand.add(player, () -> {
                 TribesManager.leaveTribe(player);
                 source.getSource().sendSuccess(TribeSuccessType.YOU_LEFT.getText(), true);

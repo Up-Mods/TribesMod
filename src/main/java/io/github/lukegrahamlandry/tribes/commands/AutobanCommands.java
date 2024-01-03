@@ -16,6 +16,9 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 public class AutobanCommands {
     public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("autoban")
@@ -73,7 +76,7 @@ public class AutobanCommands {
 
         Member.Rank rank = Member.Rank.fromString(rankName);
         if (rank == null) {
-            source.getSource().sendFailure(TribeError.INVALID_RANK.getText());
+            source.getSource().sendFailure(TribeError.INVALID_RANK.getTextWithArgs(Arrays.stream(Member.Rank.values()).map(Member.Rank::getSerializedName).collect(Collectors.joining(", "))));
             return 0;
         }
 

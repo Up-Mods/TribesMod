@@ -377,7 +377,7 @@ public class Tribe {
 
     public TribeResult<Hemisphere> validateSelectHemi(Player player, String side) {
         var runRank = this.getRankOf(player.getUUID());
-        if (runRank.compareTo(TribesConfig.rankToChooseHemisphere()) < 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (runRank.compareTo(TribesConfig.rankToChooseHemisphere()) <= 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
         if (this.getTribeTier() < TribesConfig.getMinTierToSelectHemi()) return TribeResult.error(TribeError.WEAK_TRIBE);
         if (this.hemisphereAccess != Hemisphere.NONE) return TribeResult.error(TribeError.ALREADY_HAVE_HEMISPHERE);
         if (TribesConfig.getHemisphereDirection() == HemisphereDirection.NORTH_SOUTH) {
@@ -391,7 +391,7 @@ public class Tribe {
 
     public TribeResult<Hemisphere> selectHemisphere(Player player, Hemisphere hemisphere) {
         var runRank = this.getRankOf(player.getUUID());
-        if (runRank.compareTo(TribesConfig.rankToChooseHemisphere()) < 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
+        if (runRank.compareTo(TribesConfig.rankToChooseHemisphere()) <= 0) return TribeResult.error(TribeError.RANK_TOO_LOW);
         if (this.getTribeTier() < TribesConfig.getMinTierToSelectHemi()) return TribeResult.error(TribeError.WEAK_TRIBE);
         if (this.hemisphereAccess != Hemisphere.NONE) return TribeResult.error(TribeError.ALREADY_HAVE_HEMISPHERE);
         this.hemisphereAccess = hemisphere;
