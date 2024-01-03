@@ -76,10 +76,13 @@ public class DeityCommands {
     private static int handleList(CommandContext<CommandSourceStack> source) {
         DeitiesManager.deitiesOrder.forEach(key -> {
             var data = DeitiesManager.deities.get(key);
-            var domains = String.join(", ", data.domains);
-            if (data.domains.size() > 1) {
-                var first = data.domains.subList(0, data.domains.size() - 1);
-                domains = String.join(", ", first) + " and " + data.domains.get(data.domains.size() - 1);
+            String domains;
+            if (data.domains.size() < 2) {
+                domains = data.domains.get(0);
+            } else if (data.domains.size() == 2) {
+                domains = data.domains.get(0) + " and " + data.domains.get(1);
+            } else {
+                domains = String.join(", ", data.domains.subList(0, data.domains.size() - 1)) + ", and " + data.domains.get(data.domains.size() - 1);
             }
             source.getSource().sendSuccess(TribeSuccessType.DESCRIBE_DEITY.getBlueText(data.displayName, data.label, domains), false);
         });
