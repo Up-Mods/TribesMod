@@ -47,7 +47,7 @@ public class PromotePlayerCommand {
 
             playerRunning.sendMessage(new TextComponent("make " + OfflinePlayerArgumentType.getPlayerName(playerTarget) + " the leader of your tribe?"), Util.NIL_UUID);
 
-            playerRunning.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
+            playerRunning.sendMessage(TribeSuccessType.MUST_CONFIRM_GENERIC.getBlueText(), Util.NIL_UUID);
             ConfirmCommand.add(playerRunning, () -> {
                 var result = tribe.promotePlayer(playerRunning.getUUID(), playerTarget);
 

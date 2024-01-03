@@ -25,7 +25,7 @@ public class LeaveTribeCommand {
 
         Tribe tribe = TribesManager.getTribeOf(player.getUUID());
         if (tribe != null) {
-            player.sendMessage(TribeSuccessType.MUST_CONFIRM.getBlueText(), Util.NIL_UUID);
+            player.sendMessage(TribeSuccessType.MUST_CONFIRM_LEAVE.getBlueText(), Util.NIL_UUID);
             ConfirmCommand.add(player, () -> {
                 TribesManager.leaveTribe(player);
                 source.getSource().sendSuccess(TribeSuccessType.YOU_LEFT.getText(), true);
