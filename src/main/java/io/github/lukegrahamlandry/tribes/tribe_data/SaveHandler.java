@@ -2,6 +2,7 @@ package io.github.lukegrahamlandry.tribes.tribe_data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mojang.logging.LogUtils;
 import io.github.lukegrahamlandry.tribes.TribesMain;
 import io.github.lukegrahamlandry.tribes.events.RemoveInactives;
 import net.minecraft.server.MinecraftServer;
@@ -12,18 +13,17 @@ import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
+import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
 @Mod.EventBusSubscriber(modid = TribesMain.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class SaveHandler {
 
+    private static final Logger logger = LogUtils.getLogger();
     private static final LevelResource TRIBES_DATA = new LevelResource("tribes");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -114,12 +114,17 @@ public class SaveHandler {
                 var relative = srcPath.relativize(file);
                 var filePath = deityLocation.resolve(relative.toString());
 
+                if(Files.exists(filePath)) {
+                    logger.info("Skipping existing file: " + filePath);
+                    return FileVisitResult.CONTINUE;
+                }
+
                 var parent = filePath.getParent();
                 if (parent != null) {
                     Files.createDirectories(parent);
                 }
 
-                Files.copy(file, filePath);
+                Files.copy(file, filePath, StandardCopyOption.REPLACE_EXISTING);
                 return FileVisitResult.CONTINUE;
             }
         });
