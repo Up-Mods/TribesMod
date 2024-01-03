@@ -7,7 +7,6 @@ import io.github.lukegrahamlandry.tribes.config.TribesConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -88,7 +87,7 @@ public class LandClaimHelper {
 
         // hemisphere
         if (TribesConfig.getRequireHemisphereAccess()) {
-            return hemispheres.getOrDefault(currentHemisphere, List.of()).contains(interactingTribe);
+            return interactingTribe != null && hemispheres.getOrDefault(currentHemisphere, List.of()).contains(interactingTribe);
         }
 
         return true;
